@@ -1,0 +1,64 @@
+/* 
+ * index.css — Global stylesheet for RescueLink
+ *
+ * These three @tailwind directives inject Tailwind's styles:
+ *   @tailwind base     → CSS reset + base element styles
+ *   @tailwind components → Tailwind component classes (if any)
+ *   @tailwind utilities  → All utility classes (flex, text-red-500, etc.)
+ *
+ * Anything below is our custom global CSS that sits on top of Tailwind.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Layer ─────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+/* ─── Component Layer ─────────────────────────────────────────────────────── */
+@layer components {
+  /* Reusable button styles — we'll extend these in later phases */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white 
+           text-sm font-medium rounded-lg hover:bg-primary-700 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 
+           text-sm font-medium rounded-lg border border-gray-300
+           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500
+           transition-colors duration-200;
+  }
+
+  /* Card container */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+  }
+
+  /* Form input styling */
+  .form-input {
+    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+           text-gray-900 placeholder-gray-400
+           focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500
+           transition duration-150;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+}

@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit these
+.env
+
+# Vite build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.log
+npm-debug.log*
+
+# Uploaded files (if stored locally during dev)
+uploads/
