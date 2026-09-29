@@ -3,6 +3,8 @@ node_modules/
 
 # Environment variables — NEVER commit these
 .env
+atlas-credentials.env
+*.env
 
 # Vite build output
 dist/

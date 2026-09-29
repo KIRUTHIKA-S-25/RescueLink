@@ -1,0 +1,232 @@
+/**
+ * RescueCase.js
+ *
+ * Mongoose model for an animal rescue case.
+ *
+ * This is the central document in RescueLink.
+ * Every reported animal emergency creates one RescueCase.
+ *
+ * Key design decisions:
+ * - `statusHistory` is an embedded array so we get a full audit trail of every
+ *   status change without a separate collection.
+ * - `priority`, `escalation`, and `verification` are embedded sub-documents
+ *   because they belong exclusively to one case and are always accessed together.
+ * - References to User (reporter, assignedResponder, verifiedBy) use ObjectId
+ *   refs so we can .populate() them when needed.
+ *
+ * NOTE (Phase 2):
+ * Only the schema is defined here. Business logic such as priority calculation,
+ * responder matching, Haversine distance, and escalation timers belong to
+ * later phases.
+ */
+
+const mongoose = require('mongoose');
+
+// ─── Sub-schema: Status History Entry ─────────────────────────────────────────
+
+/**
+ * Every time a case's status changes, one of these objects is pushed onto
+ * the `statusHistory` array. This gives us a full audit trail.
+ */
+const statusHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+    },
+
+    changedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+
+    note: {
+      type: String,
+    },
+  },
+  { _id: false } // No separate _id needed for sub-documents in the history array
+);
+
+// ─── Main Schema ───────────────────────────────────────────────────────────────
+
+const rescueCaseSchema = new mongoose.Schema(
+  {
+    /**
+     * Human-readable case identifier (e.g. "RC-1234567890").
+     * Auto-generated on creation — unique index.
+     */
+    caseId: {
+      type: String,
+      unique: true,
+    },
+
+    // ─── Reporter info (Phase 4: plain strings for public/auth'd reporting) ──
+
+    /**
+     * Reporter's display name — stored as a plain string so the form works
+     * whether the user is logged in or not.
+     */
+    reporterName: {
+      type: String,
+      required: [true, 'Reporter name is required'],
+      trim: true,
+    },
+
+    reporterContact: {
+      type: String,
+      required: [true, 'Reporter contact is required'],
+      trim: true,
+    },
+
+    /**
+     * Optional reference to an authenticated User account.
+     * Set when the reporter is logged in; null for anonymous reports.
+     */
+    reporter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+
+    // ─── Rescue details ───────────────────────────────────────────────────────
+
+    animalType: {
+      type: String,
+      required: [true, 'Animal type is required'],
+      trim: true,
+    },
+
+    /**
+     * emergencyType replaces rescueCategory for Phase 4.
+     * Examples: Injured, Trapped, Abandoned, Accident, Sick, Other
+     */
+    emergencyType: {
+      type: String,
+      required: [true, 'Emergency type is required'],
+      trim: true,
+    },
+
+    // Keep rescueCategory for backwards compatibility with future phases
+    rescueCategory: {
+      type: String,
+    },
+
+    description: {
+      type: String,
+      required: [true, 'Description is required'],
+      trim: true,
+    },
+
+    // Optional image URL — Cloudinary upload added in a later phase
+    imageUrl: {
+      type: String,
+    },
+
+    // ─── Location ────────────────────────────────────────────────────────────
+
+    location: {
+      latitude:  { type: Number, min: [-90, 'Latitude must be at least -90'], max: [90, 'Latitude cannot exceed 90'] },
+      longitude: { type: Number, min: [-180, 'Longitude must be at least -180'], max: [180, 'Longitude cannot exceed 180'] },
+      address:   { type: String, required: [true, 'Location address is required'] },
+    },
+
+    // ─── Priority ────────────────────────────────────────────────────────────
+
+    /**
+     * Populated by the priority algorithm in Phase 5.
+     * Stored here so responders and admins can see the calculated score.
+     */
+    priority: {
+      priority: { type: String },       // e.g. "critical", "high", "medium", "low"
+      priorityScore: { type: Number },  // Numeric score for sorting
+      priorityReasons: [{ type: String }], // Human-readable reasons for the score
+    },
+
+    // ─── Assignment ──────────────────────────────────────────────────────────
+
+    // The responder currently assigned to this case (optional until assigned)
+    assignedResponder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+
+    // Timestamp of when the responder was assigned
+    assignedAt: {
+      type: Date,
+    },
+
+    // ─── Status ──────────────────────────────────────────────────────────────
+
+    status: {
+      type: String,
+      enum: {
+        values: [
+          // ── Phase 4 statuses (primary workflow) ──
+          'PENDING',            // Citizen submitted, awaiting acceptance
+          'ACCEPTED',           // Responder accepted the case
+          'IN_PROGRESS',        // Responder is actively rescuing
+          'RESCUED',            // Animal has been rescued
+          'CANCELLED',          // Case cancelled
+          // ── Future phase statuses (reserved) ──
+          'reported',
+          'prioritized',
+          'assigned',
+          'accepted',
+          'on_the_way',
+          'rescued',
+          'handed_over',
+          'pending_verification',
+          'verified',
+          'resolved',
+          'escalated',
+          'cancelled',
+        ],
+        message: 'Invalid status value',
+      },
+      default: 'PENDING',
+    },
+
+    /**
+     * Full audit trail of every status change.
+     * Each entry records who changed it, when, and an optional note.
+     */
+    statusHistory: [statusHistorySchema],
+
+    // ─── Escalation ──────────────────────────────────────────────────────────
+
+    escalation: {
+      isEscalated: { type: Boolean, default: false },
+      escalatedAt: { type: Date },
+      escalationReason: { type: String },
+    },
+
+    // ─── Verification ────────────────────────────────────────────────────────
+
+    /**
+     * Filled in during the verification phase (Phase 8).
+     * Admin reviews the responder's completion proof before closing the case.
+     */
+    verification: {
+      verificationStatus: { type: String },  // e.g. "pending", "approved", "rejected"
+      proofImageUrl: { type: String },       // Uploaded by responder as evidence
+      completionNote: { type: String },
+      handoverDestination: { type: String }, // Shelter/vet name where animal was taken
+      completedAt: { type: Date },           // When the responder marked it complete
+      verifiedAt: { type: Date },            // When the admin verified it
+      verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    },
+  },
+  {
+    timestamps: true, // Adds createdAt and updatedAt automatically
+  }
+);
+
+const RescueCase = mongoose.model('RescueCase', rescueCaseSchema);
+
+module.exports = RescueCase;

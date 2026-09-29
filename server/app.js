@@ -11,14 +11,20 @@
  *    server.js as the entry point makes that integration clean.)
  */
 
-require('dotenv').config();           // Load .env variables before anything else
 require('express-async-errors');      // Automatically catches async errors — no need for try/catch in every route
 
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const mongoose = require('mongoose');
 
 const { sendError } = require('./src/utils/apiResponse');
+
+// ─── Route imports ────────────────────────────────────────────────────────────
+const authRoutes   = require('./src/routes/authRoutes');
+const rescueRoutes = require('./src/routes/rescueRoutes');  // Phase 4
+const notificationRoutes = require('./src/routes/notificationRoutes'); // Phase 7
+const testRoutes   = require('./src/routes/testRoutes');    // DEV ONLY
 
 const app = express();
 
@@ -59,19 +65,56 @@ if (process.env.NODE_ENV === 'development') {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 /**
- * Health Check Route
- * Purpose: A simple endpoint to confirm the API is running.
- * We'll call this from the browser/Postman to verify the server is up.
- * In later phases, all real routes will be mounted here (e.g. /api/auth, /api/cases).
+ * Health Check — Phase 1 (preserved)
+ * GET /api/health
  */
 app.get('/api/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   res.status(200).json({
     success: true,
     message: 'RescueLink API is running',
     environment: process.env.NODE_ENV,
+    database: dbStatus,
     timestamp: new Date().toISOString(),
   });
 });
+
+/**
+ * Auth routes — Phase 3
+ * POST /api/auth/register
+ * POST /api/auth/login
+ * GET  /api/auth/me
+ */
+app.use('/api/auth', authRoutes);
+
+/**
+ * Rescue routes — Phase 4
+ * POST   /api/rescues
+ * GET    /api/rescues
+ * GET    /api/rescues/my
+ * GET    /api/rescues/:id
+ * PATCH  /api/rescues/:id/status
+ */
+app.use('/api/rescues', rescueRoutes);
+
+/**
+ * Notification routes — Phase 7
+ * GET    /api/notifications
+ * PATCH  /api/notifications/read-all
+ * PATCH  /api/notifications/:id/read
+ */
+app.use('/api/notifications', notificationRoutes);
+
+/**
+ * Test routes — Phase 3 development verification ONLY
+ * GET /api/test/protected
+ * GET /api/test/citizen
+ * GET /api/test/responder
+ * GET /api/test/admin
+ */
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api/test', testRoutes);
+}
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────
 
