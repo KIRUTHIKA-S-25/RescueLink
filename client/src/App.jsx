@@ -18,6 +18,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute    from './components/ProtectedRoute';
 import RoleRoute         from './components/RoleRoute';
+import HomeDashboard   from './pages/HomeDashboard';
 import Login             from './pages/Login';
 import Register          from './pages/Register';
 import Dashboard         from './pages/Dashboard';
@@ -26,14 +27,15 @@ import MyRescues         from './pages/MyRescues';
 import RescuerDashboard  from './pages/RescuerDashboard';
 import CaseDetails       from './pages/CaseDetails';
 import Notifications     from './pages/Notifications';
+import AdminDashboard    from './pages/AdminDashboard';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Root → dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Root → Public Interactive Command Dashboard */}
+          <Route path="/" element={<HomeDashboard />} />
 
           {/* Public routes */}
           <Route path="/login"    element={<Login />} />
@@ -62,6 +64,16 @@ function App() {
             element={
               <RoleRoute allowedRoles={['responder', 'admin']}>
                 <RescuerDashboard />
+              </RoleRoute>
+            }
+          />
+
+          {/* Protected: admin only */}
+          <Route
+            path="/admin"
+            element={
+              <RoleRoute allowedRoles={['admin']}>
+                <AdminDashboard />
               </RoleRoute>
             }
           />

@@ -21,3 +21,6 @@ npm-debug.log*
 
 # Uploaded files (if stored locally during dev)
 uploads/
+
+# Local notes / sensitive info
+info.txt

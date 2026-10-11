@@ -33,10 +33,14 @@ const start = async () => {
   // Step 1: Connect to MongoDB Atlas
   await connectDB();
 
-  // Step 2: Create the HTTP server (Socket.IO-ready for later phases)
+  // Step 2: Start automated escalation background worker (checks every 30s)
+  const { startEscalationWorker } = require('./src/services/escalationService');
+  startEscalationWorker(30000);
+
+  // Step 3: Create the HTTP server (Socket.IO-ready for later phases)
   const server = http.createServer(app);
 
-  // Step 3: Start listening
+  // Step 4: Start listening
   server.listen(PORT, () => {
     console.log('');
     console.log('╔══════════════════════════════════════╗');

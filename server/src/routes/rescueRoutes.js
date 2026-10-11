@@ -24,17 +24,19 @@ const {
   getRescueById,
   updateRescueStatus,
   getUserRescues,
+  submitFeedback,
 } = require('../controllers/rescueController');
 
 const { getActivities, addUpdate } = require('../controllers/activityController');
 
 const { protect }        = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
+const upload             = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
 
 // POST /api/rescues — public (optionally attaches auth user if logged in)
-router.post('/', (req, res, next) => {
+router.post('/', upload.single('image'), (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return protect(req, res, () => next());
@@ -57,13 +59,16 @@ router.get('/:id', (req, res, next) => {
   next();
 }, getRescueById);
 
-// PATCH /api/rescues/:id/status — responder or admin only (auto-assigns on ACCEPTED)
-router.patch('/:id/status', protect, authorizeRoles('responder', 'admin'), updateRescueStatus);
+// PATCH /api/rescues/:id/status — responder or admin only (supports proof image on RESCUED)
+router.patch('/:id/status', protect, authorizeRoles('responder', 'admin'), upload.single('proofImage'), updateRescueStatus);
 
 // GET /api/rescues/:id/activities — timeline (citizen: own case only; responder/admin: any)
 router.get('/:id/activities', protect, getActivities);
 
 // POST /api/rescues/:id/updates — assigned responder or admin only
 router.post('/:id/updates', protect, authorizeRoles('responder', 'admin'), addUpdate);
+
+// POST /api/rescues/:id/feedback — citizen only
+router.post('/:id/feedback', protect, authorizeRoles('citizen'), submitFeedback);
 
 module.exports = router;

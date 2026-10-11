@@ -140,9 +140,9 @@ const rescueCaseSchema = new mongoose.Schema(
      * Stored here so responders and admins can see the calculated score.
      */
     priority: {
-      priority: { type: String },       // e.g. "critical", "high", "medium", "low"
-      priorityScore: { type: Number },  // Numeric score for sorting
-      priorityReasons: [{ type: String }], // Human-readable reasons for the score
+      type: String,
+      enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
+      default: 'MEDIUM'
     },
 
     // ─── Assignment ──────────────────────────────────────────────────────────
@@ -220,6 +220,17 @@ const rescueCaseSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
       },
+    },
+
+    // ─── Duplicate Detection ─────────────────────────────────────────────────
+
+    duplicateInfo: {
+      isDuplicate: { type: Boolean, default: false },
+      primaryCase: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'RescueCase',
+      },
+      duplicateDetectedAt: { type: Date },
     },
   },
   {

@@ -1,41 +1,26 @@
-/**
- * Register.jsx
- *
- * Registration page for RescueLink.
- *
- * Fields: Name, Email, Phone, Password, Confirm Password
- * NOTE: No role dropdown — all public registrations create citizens.
- * On success: navigate to /login
- * On error:   display clear error message
- *
- * Validation:
- *   - All required fields filled
- *   - Valid email format
- *   - Password ≥ 8 characters
- *   - Password matches Confirm Password
- */
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
-  const { register } = useAuth();
-  const navigate     = useNavigate();
+  const { register, login } = useAuth();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', password: '', confirmPassword: '',
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
   });
-  const [error,   setError]   = useState('');
-  const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
   };
-
-  // ─── Client-side validation ──────────────────────────────────────────────────
 
   const validate = () => {
     if (!form.name.trim() || !form.email.trim() || !form.password) {
@@ -53,12 +38,9 @@ const Register = () => {
     return null;
   };
 
-  // ─── Submit ──────────────────────────────────────────────────────────────────
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     const validationError = validate();
     if (validationError) {
@@ -69,15 +51,17 @@ const Register = () => {
     setLoading(true);
     try {
       await register({
-        name:     form.name.trim(),
-        email:    form.email.trim(),
-        phone:    form.phone.trim() || undefined,
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
         password: form.password,
       });
-      setSuccess('Account created! Redirecting to login…');
-      setTimeout(() => navigate('/login'), 1500);
+
+      // Log in immediately after register
+      await login(form.email.trim(), form.password);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.message || 'Registration failed. Please try again.';
+      const msg = err.response?.data?.message || 'Registration failed. Try a different email address.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -85,146 +69,154 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+      <div className="absolute top-0 right-1/4 w-[500px] h-[350px] bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-10 w-[450px] h-[350px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-600 rounded-2xl mb-4 shadow-lg">
+      {/* Top Back Link */}
+      <div className="absolute top-6 left-6 z-10">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all"
+        >
+          <span>←</span>
+          <span>Back to Operations Hub</span>
+        </Link>
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="text-center mb-7">
+          <Link to="/" className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 shadow-xl shadow-rose-600/20 mb-3 hover:scale-105 transition-transform">
             <span className="text-2xl">🐾</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-gray-500 text-sm mt-1">Join RescueLink and help save animals</p>
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Create Citizen Account
+          </h1>
+          <p className="mt-1 text-xs text-slate-400">
+            Join the community animal rescue network to report & track incidents
+          </p>
         </div>
 
-        {/* Card */}
-        <div className="card">
-          <form id="register-form" onSubmit={handleSubmit} noValidate className="space-y-4">
+        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-2xl border border-slate-100">
+          {error && (
+            <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-rose-700 text-xs font-medium">
+              <span className="text-rose-500">⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
 
-            {/* Error banner */}
-            {error && (
-              <div id="register-error" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                {error}
-              </div>
-            )}
-
-            {/* Success banner */}
-            {success && (
-              <div id="register-success" className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
-                {success}
-              </div>
-            )}
-
-            {/* Name */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="register-name" className="form-label">Full name <span className="text-red-500">*</span></label>
+              <label className="form-label" htmlFor="name">Full Name</label>
               <input
-                id="register-name"
+                id="name"
                 name="name"
                 type="text"
-                autoComplete="name"
+                required
                 value={form.name}
                 onChange={handleChange}
-                placeholder="Jane Smith"
+                placeholder="e.g. Arun Kumar"
                 className="form-input"
                 disabled={loading}
               />
             </div>
 
-            {/* Email */}
             <div>
-              <label htmlFor="register-email" className="form-label">Email address <span className="text-red-500">*</span></label>
+              <label className="form-label" htmlFor="email">Email Address</label>
               <input
-                id="register-email"
+                id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
+                required
                 value={form.email}
                 onChange={handleChange}
-                placeholder="you@example.com"
+                placeholder="arun@example.com"
                 className="form-input"
                 disabled={loading}
               />
             </div>
 
-            {/* Phone */}
             <div>
-              <label htmlFor="register-phone" className="form-label">Phone number <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label className="form-label" htmlFor="phone">Phone Number (Optional)</label>
               <input
-                id="register-phone"
+                id="phone"
                 name="phone"
                 type="tel"
-                autoComplete="tel"
                 value={form.phone}
                 onChange={handleChange}
-                placeholder="9876543210"
+                placeholder="+91 98765 43210"
                 className="form-input"
                 disabled={loading}
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label htmlFor="register-password" className="form-label">Password <span className="text-red-500">*</span></label>
-              <input
-                id="register-password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Minimum 8 characters"
-                className="form-input"
-                disabled={loading}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="form-label" htmlFor="password">Password (≥8 char)</label>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="form-input"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="confirmPassword">Confirm Password</label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="form-input"
+                  disabled={loading}
+                />
+              </div>
             </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label htmlFor="register-confirm-password" className="form-label">Confirm password <span className="text-red-500">*</span></label>
-              <input
-                id="register-confirm-password"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                placeholder="Repeat your password"
-                className="form-input"
-                disabled={loading}
-              />
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={(e) => setShowPassword(e.target.checked)}
+                  className="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                />
+                <span>Show passwords</span>
+              </label>
             </div>
 
-            {/* No role field — always citizen */}
-            <p className="text-xs text-gray-400 text-center">
-              All accounts created here are registered as <span className="font-medium text-gray-500">Citizen</span>.
-            </p>
-
-            {/* Submit */}
             <button
-              id="register-submit"
               type="submit"
-              className="btn-primary w-full"
               disabled={loading}
+              className="w-full btn-primary py-3 text-sm font-semibold rounded-xl mt-3 shadow-md"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating account…
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Creating Account…
                 </span>
               ) : (
-                'Create account'
+                'Complete Registration'
               )}
             </button>
           </form>
 
-          {/* Link to login */}
-          <p className="text-center text-sm text-gray-500 mt-5">
-            Already have an account?{' '}
-            <Link id="go-to-login" to="/login" className="text-primary-600 font-medium hover:underline">
-              Sign in
-            </Link>
-          </p>
+          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-500">
+              Already have an account?{' '}
+              <Link to="/login" className="font-bold text-rose-600 hover:text-rose-700 underline">
+                Sign in here
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

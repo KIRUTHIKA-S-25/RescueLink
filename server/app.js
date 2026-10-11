@@ -17,6 +17,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const { sendError } = require('./src/utils/apiResponse');
 
@@ -24,9 +25,11 @@ const { sendError } = require('./src/utils/apiResponse');
 const authRoutes   = require('./src/routes/authRoutes');
 const rescueRoutes = require('./src/routes/rescueRoutes');  // Phase 4
 const notificationRoutes = require('./src/routes/notificationRoutes'); // Phase 7
+const adminRoutes  = require('./src/routes/adminRoutes'); // Phase 9
 const testRoutes   = require('./src/routes/testRoutes');    // DEV ONLY
 
 const app = express();
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 
@@ -104,6 +107,13 @@ app.use('/api/rescues', rescueRoutes);
  * PATCH  /api/notifications/:id/read
  */
 app.use('/api/notifications', notificationRoutes);
+
+/**
+ * Admin routes — Phase 9
+ * GET /api/admin/analytics
+ * GET /api/admin/audit
+ */
+app.use('/api/admin', adminRoutes);
 
 /**
  * Test routes — Phase 3 development verification ONLY

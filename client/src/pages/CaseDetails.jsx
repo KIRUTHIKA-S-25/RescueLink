@@ -102,6 +102,8 @@ const CaseDetails = () => {
   const [noteLoading,  setNoteLoading]  = useState(false);
   const [noteSuccess,  setNoteSuccess]  = useState('');
   const [noteError,    setNoteError]    = useState('');
+  const [feedbackRating, setFeedbackRating] = useState('5');
+  const [feedbackComment, setFeedbackComment] = useState('');
 
   const pollRef = useRef(null);
 
@@ -192,6 +194,21 @@ const CaseDetails = () => {
     }
   };
 
+  // ─── Add Feedback ─────────────────────────────────────────────────────────
+  const handleFeedback = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post(`/rescues/${id}/feedback`, {
+        rating: parseInt(feedbackRating, 10),
+        comment: feedbackComment.trim()
+      });
+      alert('Feedback submitted successfully!');
+      fetchCase();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to submit feedback.');
+    }
+  };
+
   // ─── Derived state ────────────────────────────────────────────────────────
 
   const isResponderOrAdmin = user?.role === 'responder' || user?.role === 'admin';
@@ -261,6 +278,7 @@ const CaseDetails = () => {
 
                 <div className="divide-y divide-gray-50">
                   <InfoRow label="Description"   value={rescue.description} />
+                  <InfoRow label="Priority"      value={rescue.priority} />
                   <InfoRow label="Location"      value={rescue.location?.address} />
                   <InfoRow label="Reporter"      value={rescue.reporterName} />
                   <InfoRow label="Contact"       value={rescue.reporterContact} />
@@ -271,7 +289,7 @@ const CaseDetails = () => {
                 {rescue.imageUrl && (
                   <div className="mt-4">
                     <a
-                      href={rescue.imageUrl}
+                      href={`http://localhost:5000${rescue.imageUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-primary-600 hover:underline"
@@ -395,6 +413,41 @@ const CaseDetails = () => {
                       </div>
                     </div>
                   </form>
+                </div>
+              )}
+
+              {/* Feedback — citizen only for RESCUED cases */}
+              {user?.role === 'citizen' && rescue.status === 'RESCUED' && !rescue.feedback && (
+                <div className="card">
+                  <h2 className="font-semibold text-gray-900 mb-3">⭐ Leave Feedback</h2>
+                  <form onSubmit={handleFeedback} className="space-y-3">
+                    <select
+                      value={feedbackRating}
+                      onChange={(e) => setFeedbackRating(e.target.value)}
+                      className="form-input w-full"
+                    >
+                      <option value="5">5 - Excellent</option>
+                      <option value="4">4 - Good</option>
+                      <option value="3">3 - Average</option>
+                      <option value="2">2 - Poor</option>
+                      <option value="1">1 - Terrible</option>
+                    </select>
+                    <textarea
+                      value={feedbackComment}
+                      onChange={(e) => setFeedbackComment(e.target.value)}
+                      rows={2}
+                      placeholder="Any comments?"
+                      className="form-input resize-none w-full"
+                    />
+                    <button type="submit" className="btn-primary text-sm w-full">Submit Feedback</button>
+                  </form>
+                </div>
+              )}
+              {rescue.feedback && (
+                <div className="card bg-green-50">
+                  <h2 className="font-semibold text-gray-900 mb-2">⭐ Feedback Provided</h2>
+                  <p className="text-sm text-green-800">Rating: {rescue.feedback.rating}/5</p>
+                  {rescue.feedback.comment && <p className="text-sm italic mt-1">"{rescue.feedback.comment}"</p>}
                 </div>
               )}
 

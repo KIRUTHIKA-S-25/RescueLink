@@ -75,7 +75,7 @@ const seed = async () => {
       const salt   = await bcrypt.genSalt(12);
       const hashed = await bcrypt.hash(data.password, salt);
 
-      await User.findOneAndUpdate(
+      const savedUser = await User.findOneAndUpdate(
         { email: data.email.toLowerCase() },
         {
           name:     data.name,
@@ -87,6 +87,23 @@ const seed = async () => {
         },
         { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
+
+      if (data.role === 'responder') {
+        const ResponderProfile = require('../models/ResponderProfile');
+        await ResponderProfile.findOneAndUpdate(
+          { user: savedUser._id },
+          {
+            user: savedUser._id,
+            availability: 'available',
+            latitude: 13.0827,
+            longitude: 80.2707,
+            serviceArea: 'Central Urban',
+            rescueCapabilities: ['dog', 'cat', 'cattle', 'bird'],
+            activeCaseCount: 0,
+          },
+          { upsert: true, returnDocument: 'after' }
+        );
+      }
 
       // Log role and email — never log the password
       console.log(`[SEED] ✅ ${data.role.padEnd(10)} → ${data.email}`);
