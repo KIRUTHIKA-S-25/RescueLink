@@ -10,7 +10,7 @@
 [![MongoDB Atlas](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/atlas)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-Maps-199900?style=flat-square&logo=leaflet)](https://leafletjs.com/)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=flat-square)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
 **Intelligent Animal Rescue Coordination & Emergency Case Management System**  
 *A modern full-stack civic emergency dispatch platform connecting citizens, trained rescue teams, and veterinary shelters.*
@@ -318,4 +318,4 @@ Inside you will find:
 
 ## 📄 License & Acknowledgments
 
-This project is open-source under the **ISC License**. Developed as part of the **RescueLink Initiative** dedicated to tech-enabled civic animal welfare and emergency response coordination.
+This project is open-source under the **MIT License**. Developed as part of the **RescueLink Initiative** dedicated to tech-enabled civic animal welfare and emergency response coordination.
