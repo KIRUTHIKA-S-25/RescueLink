@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useParallax } from '../utils/useParallax';
 
 const DEMO_ACCOUNTS = [
   { label: 'Citizen', role: 'citizen', email: 'citizen@rescuelink.dev', pass: 'Citizen@123', icon: '👤', desc: 'Reporter portal' },
@@ -11,6 +12,14 @@ const DEMO_ACCOUNTS = [
 const Login = () => {
   const { login } = useAuth();
   const navigate  = useNavigate();
+
+  const {
+    containerRef,
+    mouseBgStyle,
+    cardTiltStyle,
+    handleMouseMove,
+    handleMouseLeave,
+  } = useParallax({ mouseSensitivity: 18, enableScroll: false });
 
   const [form, setForm]         = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -61,16 +70,33 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans"
+    >
+      {/* Parallax Animal Background Layer */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <img
+          src="/images/form-bg-animals.jpg"
+          alt="Rescue Animals Background"
+          className="parallax-bg-layer object-cover opacity-45 filter brightness-90 saturate-110"
+          style={mouseBgStyle}
+        />
+        {/* Cinematic Scrim Vignette for High Readability */}
+        <div className="absolute inset-0 form-scrim-cinematic" />
+      </div>
+
       {/* Background radial glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-10 w-[400px] h-[300px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-10 w-[400px] h-[300px] bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Back Link */}
       <div className="absolute top-6 left-6 z-10">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl bg-slate-900/60 border border-white/15 backdrop-blur-md transition-all shadow-lg hover:bg-slate-900/80"
         >
           <span>←</span>
           <span>Back to Operations Hub</span>
@@ -79,18 +105,21 @@ const Login = () => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 shadow-xl shadow-rose-600/20 mb-4 hover:scale-105 transition-transform">
+          <Link to="/" className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 shadow-xl shadow-rose-600/30 mb-4 hover:scale-105 transition-transform">
             <span className="text-2xl">🐾</span>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight drop-shadow-md">
             Welcome to RescueLink
           </h1>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-slate-300 drop-shadow">
             Sign in to access emergency dispatch & rescue management
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-2xl border border-slate-100">
+        <div
+          className="glass-form-card-light rounded-3xl p-7 sm:p-8 shadow-2xl relative"
+          style={cardTiltStyle}
+        >
           {/* Quick Demo Test Buttons */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">

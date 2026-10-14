@@ -38,10 +38,27 @@ const STATUS_ACTIONS = {
   PENDING:     [{ label: '✅ Accept',       next: 'ACCEPTED',    style: 'btn-primary'   },
                 { label: '✕ Cancel',        next: 'CANCELLED',   style: 'btn-secondary' }],
   ACCEPTED:    [{ label: '🚀 Start Rescue', next: 'IN_PROGRESS', style: 'btn-primary'   },
+                { label: '↩️ Release Case', next: 'RELEASE',     style: 'btn-secondary' },
                 { label: '✕ Cancel',        next: 'CANCELLED',   style: 'btn-secondary' }],
-  IN_PROGRESS: [{ label: '🎉 Mark Rescued', next: 'RESCUED',     style: 'btn-primary'   }],
+  IN_PROGRESS: [{ label: '🎉 Mark Rescued', next: 'RESCUED',     style: 'btn-primary'   },
+                { label: '↩️ Release Case', next: 'RELEASE',     style: 'btn-secondary' }],
   RESCUED:     [],
   CANCELLED:   [],
+};
+
+const VALID_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+const getPriorityString = (p) => {
+  if (!p) return 'MEDIUM';
+  if (typeof p === 'string') {
+    const up = p.toUpperCase();
+    return VALID_PRIORITIES.includes(up) ? up : p;
+  }
+  if (typeof p === 'object') {
+    const extracted = p.level || p.priority || p.value || p.name;
+    if (typeof extracted === 'string') return extracted.toUpperCase();
+    return 'MEDIUM';
+  }
+  return String(p);
 };
 
 const ACTIVITY_ICONS = {
@@ -105,6 +122,16 @@ const CaseDetails = () => {
   const [feedbackRating, setFeedbackRating] = useState('5');
   const [feedbackComment, setFeedbackComment] = useState('');
 
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [completeNote, setCompleteNote] = useState('Animal rescued safely and admitted to veterinary facility.');
+  const [completeDestination, setCompleteDestination] = useState('City Veterinary Hospital');
+  const [completeProofFile, setCompleteProofFile] = useState(null);
+  const [completeSubmitting, setCompleteSubmitting] = useState(false);
+
+  const [releaseModalOpen, setReleaseModalOpen] = useState(false);
+  const [releaseReason, setReleaseReason] = useState('Operational / vehicle impediment');
+  const [releaseSubmitting, setReleaseSubmitting] = useState(false);
+
   const pollRef = useRef(null);
 
   // ─── Fetch case ───────────────────────────────────────────────────────────
@@ -159,6 +186,14 @@ const CaseDetails = () => {
   // ─── Status update ────────────────────────────────────────────────────────
 
   const handleStatusUpdate = async (nextStatus) => {
+    if (nextStatus === 'RESCUED') {
+      setCompleteModalOpen(true);
+      return;
+    }
+    if (nextStatus === 'RELEASE') {
+      setReleaseModalOpen(true);
+      return;
+    }
     setUpdating(true);
     try {
       const res = await api.patch(`/rescues/${id}/status`, { status: nextStatus });
@@ -168,6 +203,55 @@ const CaseDetails = () => {
       alert(err.response?.data?.message || 'Failed to update status.');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleReleaseSubmit = async (e) => {
+    e.preventDefault();
+    if (!releaseReason.trim()) {
+      alert('Please provide a mandatory reason for releasing this case.');
+      return;
+    }
+    setReleaseSubmitting(true);
+    try {
+      const res = await api.patch(`/rescues/${id}/status`, {
+        status: 'PENDING',
+        releaseReason: releaseReason.trim(),
+      });
+      setRescue(res.data.data);
+      setReleaseModalOpen(false);
+      setReleaseReason('Operational / vehicle impediment');
+      await fetchActivities();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to release case.');
+    } finally {
+      setReleaseSubmitting(false);
+    }
+  };
+
+  const handleCompleteRescue = async (e) => {
+    e.preventDefault();
+    if (!completeProofFile) {
+      alert('Mandatory photographic proof is required before marking case as RESCUED.');
+      return;
+    }
+    setCompleteSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('status', 'RESCUED');
+      formData.append('completionNote', completeNote.trim());
+      formData.append('handoverDestination', completeDestination.trim());
+      formData.append('proofImage', completeProofFile);
+      const res = await api.patch(`/rescues/${id}/status`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setRescue(res.data.data);
+      setCompleteModalOpen(false);
+      await fetchActivities();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to complete rescue verification.');
+    } finally {
+      setCompleteSubmitting(false);
     }
   };
 
@@ -257,6 +341,16 @@ const CaseDetails = () => {
           </div>
         )}
 
+        {/* Not Found state */}
+        {!loadingCase && !caseError && !rescue && (
+          <div className="card text-center py-16">
+            <div className="text-4xl mb-3">🔍</div>
+            <h2 className="text-lg font-bold text-gray-800">Rescue Case Not Found</h2>
+            <p className="text-sm text-gray-500 mt-1">This rescue case could not be located or may have been deleted.</p>
+            <Link to="/dashboard" className="btn-secondary text-sm mt-4 inline-block">Return to Dashboard</Link>
+          </div>
+        )}
+
         {/* Main content */}
         {!loadingCase && !caseError && rescue && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -278,7 +372,7 @@ const CaseDetails = () => {
 
                 <div className="divide-y divide-gray-50">
                   <InfoRow label="Description"   value={rescue.description} />
-                  <InfoRow label="Priority"      value={rescue.priority} />
+                  <InfoRow label="Priority"      value={getPriorityString(rescue.priority)} />
                   <InfoRow label="Location"      value={rescue.location?.address} />
                   <InfoRow label="Reporter"      value={rescue.reporterName} />
                   <InfoRow label="Contact"       value={rescue.reporterContact} />
@@ -320,7 +414,7 @@ const CaseDetails = () => {
                     
                     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                       <div className="text-gray-500 font-mono text-xs">
-                        Lat: {rescue.location.latitude.toFixed(6)} | Lng: {rescue.location.longitude.toFixed(6)}
+                        Lat: {Number(rescue.location.latitude).toFixed(6)} | Lng: {Number(rescue.location.longitude).toFixed(6)}
                       </div>
                       <a 
                         href={`https://www.google.com/maps?q=${rescue.location.latitude},${rescue.location.longitude}`}
@@ -523,6 +617,152 @@ const CaseDetails = () => {
           </div>
         )}
       </main>
+
+      {/* ─── Mark Rescued Completion Modal ─── */}
+      {completeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🎉</span>
+                <h3 className="text-lg font-extrabold text-slate-900">Complete Rescue Operation</h3>
+              </div>
+              <button
+                onClick={() => setCompleteModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+              To safely mark this animal as <strong>RESCUED</strong>, please provide completion notes and hospital / shelter handover details.
+            </p>
+
+            <form onSubmit={handleCompleteRescue} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Handover Facility / Shelter
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={completeDestination}
+                  onChange={(e) => setCompleteDestination(e.target.value)}
+                  placeholder="e.g. Blue Cross Shelter, City Pet Hospital"
+                  className="form-input w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Completion & Treatment Note *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={completeNote}
+                  onChange={(e) => setCompleteNote(e.target.value)}
+                  placeholder="Describe animal condition and safe admission details..."
+                  className="form-input w-full resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Mandatory Proof Photo / Evidence *
+                </label>
+                <input
+                  type="file"
+                  required
+                  accept="image/*"
+                  onChange={(e) => setCompleteProofFile(e.target.files[0])}
+                  className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100 cursor-pointer"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Required: Upload clear photographic evidence of secured animal before closure.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setCompleteModalOpen(false)}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold"
+                  disabled={completeSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={completeSubmitting}
+                  className="btn-emergency flex-1 py-2.5 text-xs font-bold justify-center"
+                >
+                  {completeSubmitting ? 'Verifying & Saving…' : 'Confirm Rescue ✓'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Release Case Modal */}
+      {releaseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-slide-in-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">↩️</span>
+                <h3 className="font-extrabold text-slate-900 text-lg">Release Rescue Case</h3>
+              </div>
+              <button
+                onClick={() => setReleaseModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              Releasing this case will return it back to the <strong>PENDING</strong> queue so other available responders can be dispatched.
+            </p>
+
+            <form onSubmit={handleReleaseSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Mandatory Reason for Release *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={releaseReason}
+                  onChange={(e) => setReleaseReason(e.target.value)}
+                  placeholder="e.g. Vehicle breakdown, medical equipment issue, assigned to another priority..."
+                  className="form-input w-full resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReleaseModalOpen(false)}
+                  className="btn-secondary flex-1 py-2.5 text-xs font-bold"
+                  disabled={releaseSubmitting}
+                >
+                  Keep Case
+                </button>
+                <button
+                  type="submit"
+                  disabled={releaseSubmitting}
+                  className="btn-primary flex-1 py-2.5 text-xs font-bold justify-center"
+                >
+                  {releaseSubmitting ? 'Releasing…' : 'Confirm Release ↩️'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

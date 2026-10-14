@@ -14,8 +14,9 @@
  *   /rescuer    → Rescue team dashboard (protected: responder or admin)
  */
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import ErrorBoundary     from './components/ErrorBoundary';
 import ProtectedRoute    from './components/ProtectedRoute';
 import RoleRoute         from './components/RoleRoute';
 import HomeDashboard   from './pages/HomeDashboard';
@@ -28,67 +29,73 @@ import RescuerDashboard  from './pages/RescuerDashboard';
 import CaseDetails       from './pages/CaseDetails';
 import Notifications     from './pages/Notifications';
 import AdminDashboard    from './pages/AdminDashboard';
+import NotFound          from './pages/NotFound';
+import ChatWidget        from './components/ChatWidget';
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Root → Public Interactive Command Dashboard */}
-          <Route path="/" element={<HomeDashboard />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* Root → Public Interactive Command Dashboard */}
+            <Route path="/" element={<HomeDashboard />} />
 
-          {/* Public routes */}
-          <Route path="/login"    element={<Login />} />
-          <Route path="/register" element={<Register />} />
+            {/* Public routes */}
+            <Route path="/login"    element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          {/* Report rescue — public (works for guests too) */}
-          <Route path="/report" element={<ReportRescue />} />
+            {/* Report rescue — public (works for guests too) */}
+            <Route path="/report" element={<ReportRescue />} />
 
-          {/* Protected: any authenticated user */}
-          <Route
-            path="/dashboard"
-            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
-          />
-          <Route
-            path="/my-rescues"
-            element={<ProtectedRoute><MyRescues /></ProtectedRoute>}
-          />
-          <Route
-            path="/notifications"
-            element={<ProtectedRoute><Notifications /></ProtectedRoute>}
-          />
+            {/* Protected: any authenticated user */}
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/my-rescues"
+              element={<ProtectedRoute><MyRescues /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications"
+              element={<ProtectedRoute><Notifications /></ProtectedRoute>}
+            />
 
-          {/* Protected: responder or admin only */}
-          <Route
-            path="/rescuer"
-            element={
-              <RoleRoute allowedRoles={['responder', 'admin']}>
-                <RescuerDashboard />
-              </RoleRoute>
-            }
-          />
+            {/* Protected: responder or admin only */}
+            <Route
+              path="/rescuer"
+              element={
+                <RoleRoute allowedRoles={['responder', 'admin']}>
+                  <RescuerDashboard />
+                </RoleRoute>
+              }
+            />
 
-          {/* Protected: admin only */}
-          <Route
-            path="/admin"
-            element={
-              <RoleRoute allowedRoles={['admin']}>
-                <AdminDashboard />
-              </RoleRoute>
-            }
-          />
+            {/* Protected: admin only */}
+            <Route
+              path="/admin"
+              element={
+                <RoleRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RoleRoute>
+              }
+            />
 
-          {/* Protected: any authenticated user — case details */}
-          <Route
-            path="/rescues/:id"
-            element={<ProtectedRoute><CaseDetails /></ProtectedRoute>}
-          />
+            {/* Protected: any authenticated user — case details */}
+            <Route
+              path="/rescues/:id"
+              element={<ProtectedRoute><CaseDetails /></ProtectedRoute>}
+            />
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+            {/* Catch-all 404 Page */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          {/* Globally Accessible AI Assistant (Phase 13) */}
+          <ChatWidget />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

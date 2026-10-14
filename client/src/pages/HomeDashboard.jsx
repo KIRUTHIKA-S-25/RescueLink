@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from '../components/AuthModal';
+import { useParallax } from '../utils/useParallax';
+import RescueLinkLogo from '../components/RescueLinkLogo';
 
 /* ─── Static Data ────────────────────────────────────────────────────────── */
 
@@ -222,6 +224,14 @@ const HomeDashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  // Parallax hook for Hero Header
+  const {
+    containerRef: heroRef,
+    parallaxBgStyle: heroBgStyle,
+    handleMouseMove: handleHeroMouseMove,
+    handleMouseLeave: handleHeroMouseLeave,
+  } = useParallax({ scrollSpeed: 0.22, mouseSensitivity: 14 });
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
@@ -243,68 +253,75 @@ const HomeDashboard = () => {
   const currentTriage = TRIAGE_GUIDES.find((g) => g.id === activeTriage) || TRIAGE_GUIDES[0];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="relative min-h-screen bg-slate-900/5 text-slate-900 flex flex-col font-sans overflow-x-hidden">
 
-      {/* ─── Sticky Navigation ─────────────────────────────────────────── */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? 'nav-glass shadow-sm py-0'
-            : 'bg-transparent border-b border-transparent py-1'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Brand */}
+      {/* ── Fixed Ambient Animal Background Wallpaper ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <img
+          src="/images/sunset-sanctuary-friends.jpg"
+          alt=""
+          className="w-full h-full object-cover opacity-40 filter saturate-125 brightness-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-transparent to-slate-900/25" />
+        {/* Soft glowing ambient orbs */}
+        <div className="absolute -top-24 -left-24 w-[36rem] h-[36rem] rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 -right-28 w-[34rem] h-[34rem] rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 left-1/3 w-[30rem] h-[30rem] rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      </div>
+
+      {/* ─── High-Contrast Crystal-Clear Navigation Header ──────────────── */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/85 backdrop-blur-xl border-b border-white/10 shadow-2xl transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+          {/* Brand Logo & Title (Always Visible) */}
           <Link to="/" className="flex items-center gap-3 group shrink-0">
-            <div className="relative w-10 h-10">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 flex items-center justify-center text-white shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-xl">🐾</span>
-              </div>
-              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white animate-pulse" />
+            <div className="relative">
+              <RescueLinkLogo className="w-10 h-10 shadow-md rounded-2xl" />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-900 animate-pulse shadow-sm" />
             </div>
-            <div className="hidden sm:block">
+            <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-slate-900">RescueLink</span>
-                <span className="text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200/80">
+                <span className="text-base sm:text-lg font-black tracking-tight text-white drop-shadow-sm">RescueLink</span>
+                <span className="text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40">
                   24/7 Live
                 </span>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium">Animal Emergency Dispatch</span>
+              <span className="text-[11px] text-slate-300 font-semibold tracking-wide">Animal Emergency Dispatch</span>
             </div>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Desktop Nav Items (Always High-Contrast & Clearly Readable) */}
+          <nav className="hidden md:flex items-center gap-1.5">
             {[
-              { href: '#emergency', label: 'Emergency SOS' },
-              { href: '#live-feed', label: 'Live Feed' },
-              { href: '#first-aid', label: 'First Aid' },
-              { href: '#how-it-works', label: 'How It Works' },
+              { href: '#emergency', label: 'Emergency SOS', icon: '🚨' },
+              { href: '#first-aid', label: 'First Aid Guide', icon: '🩺' },
+              { href: '#live-feed', label: 'Live Incident Feed', icon: '📡' },
+              { href: '#how-it-works', label: 'How It Works', icon: '⚙️' },
             ].map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 rounded-xl transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-200 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
-                {item.label}
+                <span className="text-sm">{item.icon}</span>
+                <span>{item.label}</span>
               </a>
             ))}
           </nav>
 
-          {/* Auth Buttons */}
+          {/* Auth & Portal Buttons */}
           <div className="flex items-center gap-2">
             {user ? (
               <div className="flex items-center gap-2">
                 <Link
                   to={getPortalLink()}
-                  className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-xl text-xs font-black hover:brightness-110 transition-all shadow-lg shadow-rose-600/35 hover:-translate-y-0.5"
                 >
                   <span>My Portal</span>
-                  <span className="px-1.5 py-0.5 rounded-md bg-white/15 text-[10px] capitalize">{user.role}</span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-white/25 text-[10px] uppercase font-black tracking-wide">{user.role}</span>
                 </Link>
                 <button
                   onClick={logout}
-                  className="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 border border-white/15 rounded-xl transition-all cursor-pointer"
                 >
                   Logout
                 </button>
@@ -313,14 +330,14 @@ const HomeDashboard = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => openAuth('login')}
-                  className="hidden sm:block px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                  className="hidden sm:block px-4 py-2 text-xs font-bold text-slate-200 hover:text-white hover:bg-white/10 border border-white/20 rounded-xl transition-all cursor-pointer"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => openAuth('register')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-white text-xs font-bold rounded-xl cursor-pointer transition-all hover:-translate-y-0.5"
-                  style={{ background: 'linear-gradient(135deg,#e11d48,#be123c)', boxShadow: '0 4px 16px rgba(225,29,72,0.35)' }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-white text-xs font-black rounded-xl cursor-pointer transition-all hover:scale-105 shadow-lg shadow-rose-600/35"
+                  style={{ background: 'linear-gradient(135deg,#e11d48,#be123c)' }}
                 >
                   <span>Create Account</span>
                   <span>→</span>
@@ -328,104 +345,119 @@ const HomeDashboard = () => {
               </div>
             )}
 
-            {/* Mobile menu */}
+            {/* Mobile menu button with high-visibility white bars */}
             <button
-              className="md:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors"
+              className="md:hidden p-2 rounded-xl text-white hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation"
             >
-              <div className="w-5 h-4 flex flex-col justify-between">
-                <span className={`block h-0.5 bg-slate-700 rounded transition-all ${mobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
-                <span className={`block h-0.5 bg-slate-700 rounded transition-all ${mobileMenuOpen ? 'opacity-0' : ''}`} />
-                <span className={`block h-0.5 bg-slate-700 rounded transition-all ${mobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
+              <div className="w-6 h-5 flex flex-col justify-between">
+                <span className={`block h-0.5 w-full bg-white rounded transition-all ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                <span className={`block h-0.5 w-full bg-white rounded transition-all ${mobileMenuOpen ? 'opacity-0' : ''}`} />
+                <span className={`block h-0.5 w-full bg-white rounded transition-all ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
               </div>
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Dropdown Menu with High Contrast */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200/60 bg-white/95 backdrop-blur-xl px-4 py-3 space-y-1 animate-fade-in-down">
+          <div className="md:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur-2xl px-4 py-4 space-y-2 animate-fade-in-down shadow-2xl">
             {[
               { href: '#emergency', label: '🚨 Emergency SOS' },
-              { href: '#live-feed', label: '📡 Live Feed' },
               { href: '#first-aid', label: '🩺 First Aid Guide' },
+              { href: '#live-feed', label: '📡 Live Incident Feed' },
               { href: '#how-it-works', label: '⚙️ How It Works' },
             ].map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                className="block px-4 py-2.5 text-sm font-bold text-slate-200 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
                 {item.label}
               </a>
             ))}
-            <div className="pt-2 flex gap-2">
-              <button onClick={() => { openAuth('login'); setMobileMenuOpen(false); }}
-                className="flex-1 py-2.5 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer">
-                Sign In
-              </button>
-              <button onClick={() => { openAuth('register'); setMobileMenuOpen(false); }}
-                className="flex-1 py-2.5 text-xs font-bold text-white rounded-xl cursor-pointer transition-all"
-                style={{ background: 'linear-gradient(135deg,#e11d48,#be123c)' }}>
-                Create Account
-              </button>
-            </div>
+            {user ? (
+              <div className="pt-2 flex flex-col gap-2">
+                <Link
+                  to={getPortalLink()}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 text-center text-xs font-black text-white rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 shadow-md"
+                >
+                  Open {user.role.toUpperCase()} Workspace →
+                </Link>
+                <button
+                  onClick={() => { logout(); setMobileMenuOpen(false); }}
+                  className="w-full py-2.5 text-xs font-bold text-slate-300 hover:text-white border border-white/20 rounded-xl"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="pt-2 flex gap-2">
+                <button
+                  onClick={() => { openAuth('login'); setMobileMenuOpen(false); }}
+                  className="flex-1 py-2.5 text-xs font-bold text-slate-200 border border-white/20 rounded-xl hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => { openAuth('register'); setMobileMenuOpen(false); }}
+                  className="flex-1 py-2.5 text-xs font-black text-white rounded-xl cursor-pointer transition-all bg-gradient-to-r from-rose-600 to-rose-700 shadow-md"
+                >
+                  Create Account
+                </button>
+              </div>
+            )}
           </div>
         )}
       </header>
 
-      {/* ─── Hero Section ──────────────────────────────────────────────── */}
-      <section id="emergency" className="relative pt-28 pb-20 overflow-hidden mesh-bg">
+      {/* ─── Hero Section with Parallax Animal Background ──────────────── */}
+      <section
+        id="emergency"
+        ref={heroRef}
+        onMouseMove={handleHeroMouseMove}
+        onMouseLeave={handleHeroMouseLeave}
+        className="relative pt-28 pb-20 overflow-hidden"
+      >
+        {/* Parallax Animal Hero Image Layer (Sunset Dog, Cat, and Rabbit Hillside Vista) */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <img
+            src="/images/sunset-sanctuary-friends.jpg"
+            alt="RescueLink Sunset Animal Sanctuary"
+            className="w-full h-full object-cover object-center absolute inset-0 opacity-100 filter brightness-105 saturate-115 contrast-105"
+            style={heroBgStyle}
+          />
+          {/* Gentle cinematic vignette: edges shaded for navigation & stats, center crystal clear */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-slate-950/45" />
+        </div>
+
         {/* Animated background orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="animate-orb absolute top-10 left-[10%] w-[500px] h-[500px] rounded-full opacity-40"
-            style={{ background: 'radial-gradient(circle, rgba(225,29,72,0.18) 0%, transparent 70%)' }} />
-          <div className="animate-orb-delay absolute bottom-0 right-[5%] w-[400px] h-[400px] rounded-full opacity-30"
-            style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%)' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full opacity-20"
-            style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, transparent 70%)' }} />
-
-          {/* Grid lines */}
-          <div className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage: 'linear-gradient(#e11d48 1px, transparent 1px), linear-gradient(to right, #e11d48 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }} />
+          <div className="animate-orb absolute top-10 left-[10%] w-[500px] h-[500px] rounded-full opacity-30"
+            style={{ background: 'radial-gradient(circle, rgba(225,29,72,0.15) 0%, transparent 70%)' }} />
+          <div className="animate-orb-delay absolute bottom-0 right-[5%] w-[400px] h-[400px] rounded-full opacity-25"
+            style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full opacity-15"
+            style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.1) 0%, transparent 70%)' }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Live badge */}
-          <div className="flex justify-center mb-8 animate-fade-in-down">
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border text-xs font-bold"
-              style={{
-                background: 'rgba(255,255,255,0.8)',
-                backdropFilter: 'blur(12px)',
-                borderColor: 'rgba(225,29,72,0.2)',
-                color: '#be123c',
-                boxShadow: '0 4px 20px rgba(225,29,72,0.1)',
-              }}>
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600" />
-              </span>
-              <span>Animal Distress Emergency Network — Active</span>
-              <span className="w-px h-3 bg-rose-200" />
-              <span className="text-rose-500">India</span>
-            </div>
-          </div>
-
-          {/* Hero headline */}
-          <div className="text-center max-w-4xl mx-auto mb-10 animate-fade-in-up">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-950 leading-[1.06] mb-6">
+          {/* Hero headline (Removed "Animal Distress Emergency Network — Active India" badge) */}
+          <div className="text-center max-w-4xl mx-auto mb-10 animate-fade-in-up pt-4">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white drop-shadow-lg leading-[1.06] mb-6">
               Immediate Care for
               <br />
-              <span className="gradient-text">Animals in Distress.</span>
+              <span className="bg-gradient-to-r from-amber-300 via-rose-300 to-orange-300 bg-clip-text text-transparent drop-shadow-md">
+                Animals in Distress.
+              </span>
             </h1>
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto font-normal">
+            <p className="text-base sm:text-lg text-slate-100 drop-shadow-md leading-relaxed max-w-2xl mx-auto font-medium">
               Spot an injured, trapped, or sick animal? File a 30-second report with your GPS
               location. Our system scores urgency and alerts the nearest rescue team{' '}
-              <span className="font-semibold text-slate-800">instantly.</span>
+              <span className="font-extrabold text-white">instantly.</span>
             </p>
           </div>
 
@@ -433,7 +465,7 @@ const HomeDashboard = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-in-up delay-200">
             <Link
               to="/report"
-              className="btn-emergency w-full sm:w-auto text-base px-8 py-4 rounded-2xl"
+              className="btn-emergency w-full sm:w-auto text-base px-8 py-4 rounded-2xl shadow-2xl"
               style={{ fontSize: '15px' }}
             >
               <span className="text-xl">🚨</span>
@@ -445,7 +477,7 @@ const HomeDashboard = () => {
               <button
                 type="button"
                 onClick={() => openAuth('login')}
-                className="btn-secondary w-full sm:w-auto px-7 py-4 text-sm font-bold rounded-2xl"
+                className="btn-secondary w-full sm:w-auto px-7 py-4 text-sm font-bold rounded-2xl bg-white/95 backdrop-blur-md shadow-xl"
               >
                 <span>🔐</span>
                 <span>Responder / Citizen Sign In</span>
@@ -453,7 +485,7 @@ const HomeDashboard = () => {
             ) : (
               <Link
                 to={getPortalLink()}
-                className="btn-secondary w-full sm:w-auto px-7 py-4 text-sm font-bold rounded-2xl"
+                className="btn-secondary w-full sm:w-auto px-7 py-4 text-sm font-bold rounded-2xl bg-white/95 backdrop-blur-md shadow-xl"
               >
                 <span>Open {user.role.toUpperCase()} Dashboard</span>
                 <span>→</span>
@@ -463,15 +495,14 @@ const HomeDashboard = () => {
 
           {/* Hotline */}
           <div className="flex justify-center mb-14 animate-fade-in-up delay-300">
-            <div className="inline-flex items-center gap-3 text-xs text-slate-500 px-5 py-2.5 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(226,232,240,0.8)' }}>
+            <div className="inline-flex items-center gap-3 text-xs text-white px-5 py-2.5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 shadow-xl">
               <span>📞</span>
-              <span className="font-semibold text-slate-700">24/7 Animal Ambulance:</span>
-              <a href="tel:1962" className="font-black text-rose-600 hover:text-rose-700 transition-colors">
+              <span className="font-bold text-slate-200">24/7 Animal Ambulance:</span>
+              <a href="tel:1962" className="font-black text-rose-300 hover:text-rose-200 transition-colors">
                 1962 — National Animal Helpline
               </a>
-              <span className="text-slate-300">|</span>
-              <span className="text-emerald-600 font-semibold">Free Service</span>
+              <span className="text-white/40">|</span>
+              <span className="text-emerald-300 font-bold">Free Service</span>
             </div>
           </div>
 
@@ -483,7 +514,7 @@ const HomeDashboard = () => {
               { icon: '🦺', stat: 94, suffix: '', label: 'Verified Responders Active', tag: 'On-Duty', tagColor: 'text-amber-600 bg-amber-50 border-amber-200' },
               { icon: '🩺', stat: 982, suffix: '%', label: 'Medical Rehabilitation Rate', tag: 'Verified', tagColor: 'text-purple-600 bg-purple-50 border-purple-200', div10: true },
             ].map((s, i) => (
-              <div key={i} className="stat-card group">
+              <div key={i} className="stat-card group bg-white/90 backdrop-blur-md border border-white/60 shadow-xl hover:shadow-2xl hover:bg-white/95 transition-all">
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
                     {s.icon}
@@ -508,9 +539,103 @@ const HomeDashboard = () => {
         </div>
       </section>
 
-      {/* ─── Live Incident Feed ─────────────────────────────────────────── */}
-      <section id="live-feed" className="py-20 bg-white border-y border-slate-200/60">
+      {/* ─── First Aid Citizen Emergency Guide (Prominently Featured) ────── */}
+      <section id="first-aid" className="py-20 relative scroll-mt-16 bg-white/75 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="section-eyebrow block mb-2">Citizen Emergency Guide</span>
+            <h2 className="section-title mb-3">What to Do While Help Is En Route</h2>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              Immediate actions you can safely take before trained rescue responders reach the location.
+            </p>
+          </div>
+
+          {/* Category Tabs — Species Names Always Visible */}
+          <div className="flex items-center justify-center flex-wrap gap-3 mb-10">
+            {TRIAGE_GUIDES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveTriage(cat.id)}
+                className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer shadow-sm ${
+                  activeTriage === cat.id
+                    ? 'text-white shadow-xl -translate-y-1 scale-105'
+                    : 'bg-white/95 text-slate-700 hover:bg-white border border-slate-200/90 hover:-translate-y-0.5 hover:shadow-md'
+                }`}
+                style={activeTriage === cat.id ? {
+                  background: `linear-gradient(135deg, ${cat.color.includes('amber') ? '#f59e0b,#ea580c' : cat.color.includes('purple') ? '#a855f7,#7c3aed' : cat.color.includes('emerald') ? '#10b981,#0d9488' : cat.color.includes('sky') ? '#0ea5e9,#2563eb' : '#f43f5e,#dc2626'})`,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+                } : {}}
+              >
+                <span className="text-lg">{cat.icon}</span>
+                <span className="font-extrabold tracking-tight">{cat.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Triage Content Protocol Card */}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white/95 backdrop-blur-md rounded-3xl overflow-hidden animate-fade-in-up border border-slate-200/80 shadow-2xl">
+              {/* Card Header with Always-Visible Severity Badge */}
+              <div className={`bg-gradient-to-r ${currentTriage.color} p-6 text-white`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-sm">
+                      {currentTriage.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-extrabold">{currentTriage.name} Protocol</h3>
+                      <p className="text-sm text-white/90 mt-0.5 font-medium">Standard community triage procedure</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/30 backdrop-blur-sm text-xs sm:text-sm font-black border border-white/20 shrink-0 shadow-sm">
+                    <span>⚡</span>
+                    <span>{currentTriage.severity}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="p-6 sm:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {currentTriage.steps.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-3.5 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
+                      <span className="w-7 h-7 rounded-xl flex items-center justify-center text-white font-black text-xs shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${currentTriage.color.includes('amber') ? '#f59e0b,#ea580c' : currentTriage.color.includes('purple') ? '#a855f7,#7c3aed' : currentTriage.color.includes('emerald') ? '#10b981,#0d9488' : currentTriage.color.includes('sky') ? '#0ea5e9,#2563eb' : '#f43f5e,#dc2626'})` }}>
+                        {idx + 1}
+                      </span>
+                      <p className="text-xs text-slate-700 leading-relaxed font-semibold">{step}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl gap-3"
+                  style={{ background: 'rgba(254,242,242,0.85)', border: '1px solid rgba(254,202,202,0.9)' }}>
+                  <div className="flex items-center gap-2.5 text-xs font-bold text-rose-800">
+                    <span>📞</span>
+                    <span>{currentTriage.contact}</span>
+                  </div>
+                  <Link to="/report" className="btn-emergency text-xs py-2.5 px-5 whitespace-nowrap shrink-0 shadow-md">
+                    Report {currentTriage.name} Now →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Live Incident Feed ─────────────────────────────────────────── */}
+      <section id="live-feed" className="py-20 relative border-b border-slate-200/50 overflow-hidden scroll-mt-16 bg-white/70 backdrop-blur-md">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <img
+            src="/images/rescuer-banner.jpg"
+            alt=""
+            className="w-full h-full object-cover opacity-[0.09] filter saturate-120"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/20 to-white/40" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
             <div>
@@ -522,17 +647,17 @@ const HomeDashboard = () => {
                 <span className="section-eyebrow">Live Incident Ticker</span>
               </div>
               <h2 className="section-title mb-2">Active Rescue Operations</h2>
-              <p className="text-sm text-slate-500 max-w-md">
+              <p className="text-sm text-slate-600 max-w-md font-medium">
                 Real-time snapshot of incidents moving through the RescueLink coordination lifecycle.
               </p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Link to="/report" className="btn-primary text-xs py-2 px-4">
+              <Link to="/report" className="btn-primary text-xs py-2 px-4 shadow-sm">
                 + File New Report
               </Link>
               {!user && (
-                <button type="button" onClick={() => openAuth('login')} className="btn-secondary text-xs py-2 px-4">
+                <button type="button" onClick={() => openAuth('login')} className="btn-secondary text-xs py-2 px-4 shadow-sm">
                   Rescuer Log In
                 </button>
               )}
@@ -544,7 +669,7 @@ const HomeDashboard = () => {
             {RECENT_SAMPLE_CASES.map((item, i) => {
               const sm = getStatusMeta(item.status);
               return (
-                <div key={item.id} className="incident-card" style={{ animationDelay: `${i * 0.08}s` }}>
+                <div key={item.id} className="incident-card bg-white/95 backdrop-blur-sm shadow-md hover:shadow-xl" style={{ animationDelay: `${i * 0.08}s` }}>
                   {/* Priority bar */}
                   <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r ${sm.bar}`} />
 
@@ -561,11 +686,11 @@ const HomeDashboard = () => {
                   <div className="space-y-1.5 text-xs text-slate-500 mb-4">
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-400 shrink-0">📍</span>
-                      <span className="truncate">{item.location}</span>
+                      <span className="truncate font-medium">{item.location}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-400 shrink-0">🕒</span>
-                      <span>{item.time}</span>
+                      <span className="font-medium">{item.time}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-400 shrink-0">🦺</span>
@@ -589,96 +714,17 @@ const HomeDashboard = () => {
         </div>
       </section>
 
-      {/* ─── First Aid Triage ───────────────────────────────────────────── */}
-      <section id="first-aid" className="py-20 mesh-bg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="section-eyebrow block mb-2">Citizen Emergency Guide</span>
-            <h2 className="section-title mb-3">What to Do While Help Is En Route</h2>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Immediate actions you can safely take before trained rescue responders reach the location.
-            </p>
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex items-center justify-center flex-wrap gap-2.5 mb-10">
-            {TRIAGE_GUIDES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setActiveTriage(cat.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  activeTriage === cat.id
-                    ? 'text-white shadow-lg -translate-y-0.5'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80 hover:-translate-y-0.5'
-                }`}
-                style={activeTriage === cat.id ? {
-                  background: `linear-gradient(135deg, ${cat.color.includes('amber') ? '#f59e0b,#ea580c' : cat.color.includes('purple') ? '#a855f7,#7c3aed' : cat.color.includes('emerald') ? '#10b981,#0d9488' : cat.color.includes('sky') ? '#0ea5e9,#2563eb' : '#f43f5e,#dc2626'})`,
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
-                } : {}}
-              >
-                <span className="text-sm">{cat.icon}</span>
-                <span className="hidden sm:inline">{cat.name}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Triage Content */}
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-3xl overflow-hidden animate-fade-in-up"
-              style={{ border: '1px solid rgba(226,232,240,0.7)', boxShadow: '0 8px 40px rgba(15,23,42,0.08)' }}>
-              {/* Card Header */}
-              <div className={`bg-gradient-to-r ${currentTriage.color} p-6 text-white`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-4xl">
-                      {currentTriage.icon}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-extrabold">{currentTriage.name} Protocol</h3>
-                      <p className="text-sm text-white/80 mt-0.5">Standard community triage procedure</p>
-                    </div>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/20 text-sm font-bold">
-                    <span>⚡</span>
-                    <span>{currentTriage.severity}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Steps */}
-              <div className="p-6 sm:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {currentTriage.steps.map((step, idx) => (
-                    <div key={idx} className="flex items-start gap-3.5 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
-                      <span className="w-7 h-7 rounded-xl flex items-center justify-center text-white font-black text-xs shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${currentTriage.color.includes('amber') ? '#f59e0b,#ea580c' : currentTriage.color.includes('purple') ? '#a855f7,#7c3aed' : currentTriage.color.includes('emerald') ? '#10b981,#0d9488' : currentTriage.color.includes('sky') ? '#0ea5e9,#2563eb' : '#f43f5e,#dc2626'})` }}>
-                        {idx + 1}
-                      </span>
-                      <p className="text-xs text-slate-700 leading-relaxed font-medium">{step}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl gap-3"
-                  style={{ background: 'rgba(254,242,242,0.7)', border: '1px solid rgba(254,202,202,0.8)' }}>
-                  <div className="flex items-center gap-2.5 text-xs font-semibold text-rose-800">
-                    <span>📞</span>
-                    <span>{currentTriage.contact}</span>
-                  </div>
-                  <Link to="/report" className="btn-emergency text-xs py-2.5 px-5 whitespace-nowrap shrink-0">
-                    Report {currentTriage.name} Now →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ─── How It Works ───────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-20 bg-white border-t border-slate-200/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="how-it-works" className="py-20 relative border-b border-slate-200/50 overflow-hidden scroll-mt-16 bg-white/70 backdrop-blur-md">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <img
+            src="/images/hero-rescue-dog.jpg"
+            alt=""
+            className="w-full h-full object-cover opacity-[0.08] filter saturate-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/20 to-white/40" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="section-eyebrow block mb-2">Transparent Operations</span>
             <h2 className="section-title mb-3">How the Dispatch System Operates</h2>
@@ -718,7 +764,15 @@ const HomeDashboard = () => {
 
       {/* ─── CTA Banner ─────────────────────────────────────────────────── */}
       <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 mesh-bg-dark" />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <img
+            src="/images/rescuer-banner.jpg"
+            alt="Rescue field mission"
+            className="w-full h-full object-cover opacity-35 filter brightness-75 contrast-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-slate-950/90" />
+        </div>
+        <div className="absolute inset-0 mesh-bg-dark opacity-60" />
         {/* Decorative orbs */}
         <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-30 pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(225,29,72,0.3) 0%, transparent 70%)' }} />
@@ -776,35 +830,62 @@ const HomeDashboard = () => {
         </div>
       </section>
 
-      {/* ─── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="bg-slate-950 border-t border-slate-800/80 text-slate-500 py-10">
+      {/* ─── High-Visibility Footer ─────────────────────────────────────── */}
+      <footer className="bg-slate-900 border-t-2 border-slate-700/80 text-slate-200 py-12 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center text-base shadow-sm">
-                🐾
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pb-10 border-b border-slate-800">
+            {/* Brand info */}
+            <div className="md:col-span-2 space-y-4">
+              <div className="flex items-center gap-3">
+                <RescueLinkLogo className="w-9 h-9" />
+                <div>
+                  <span className="text-lg font-black text-white tracking-tight">RescueLink</span>
+                  <span className="text-xs text-rose-400 font-bold block">Animal Distress Emergency Network</span>
+                </div>
               </div>
-              <div>
-                <span className="font-bold text-white text-sm">RescueLink</span>
-                <span className="text-slate-600 text-xs ml-2">— Intelligent Animal Rescue System</span>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-sm">
+                Empowering citizens, certified rescuers, and veterinary hospitals with automated urgency triage, GPS telemetry dispatch, and rapid emergency intervention across India.
+              </p>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>24/7 National Animal Helpline: 1962 (Toll-Free)</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-5 text-xs">
-              <a href="#emergency" className="hover:text-white transition-colors">Emergency</a>
-              <a href="#first-aid" className="hover:text-white transition-colors">First Aid</a>
-              <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-              <button onClick={() => openAuth('login')} className="hover:text-white transition-colors cursor-pointer">
-                Sign In
-              </button>
-              <Link to="/report" className="text-rose-400 font-bold hover:text-rose-300 transition-colors">
-                Submit SOS →
-              </Link>
+            {/* Emergency & Citizen Links */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-white mb-3">Quick Navigation</h4>
+              <ul className="space-y-2 text-xs font-semibold">
+                <li><a href="#emergency" className="text-slate-300 hover:text-white transition-colors">🚨 Emergency SOS Dispatch</a></li>
+                <li><a href="#live-feed" className="text-slate-300 hover:text-white transition-colors">📡 Live Incident Feed</a></li>
+                <li><a href="#first-aid" className="text-slate-300 hover:text-white transition-colors">🩺 First Aid Emergency Guides</a></li>
+                <li><a href="#how-it-works" className="text-slate-300 hover:text-white transition-colors">⚙️ Operational Flow</a></li>
+                <li><Link to="/report" className="text-rose-400 hover:text-rose-300 font-bold">⚡ File 30-Sec SOS Report →</Link></li>
+              </ul>
+            </div>
+
+            {/* Responder & Portal Links */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-white mb-3">Responder Portals</h4>
+              <ul className="space-y-2 text-xs font-semibold">
+                <li><button onClick={() => openAuth('login')} className="text-slate-300 hover:text-white transition-colors cursor-pointer text-left">🔐 Rescuer Sign In</button></li>
+                <li><button onClick={() => openAuth('register')} className="text-slate-300 hover:text-white transition-colors cursor-pointer text-left">🤝 Volunteer Registration</button></li>
+                <li><Link to="/my-rescues" className="text-slate-300 hover:text-white transition-colors">📋 Citizen Incident Tracker</Link></li>
+                <li><Link to="/rescuer" className="text-slate-300 hover:text-white transition-colors">🦺 Field Responder Terminal</Link></li>
+                <li><Link to="/admin" className="text-slate-300 hover:text-white transition-colors">👑 Admin Analytics Hub</Link></li>
+              </ul>
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-800/60 text-center text-[11px] text-slate-600">
-            © 2025 RescueLink. A community-driven animal emergency dispatch network. Built with ❤️ for animals.
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-300 font-medium">
+            <div>
+              © 2026 <b>RescueLink</b>. All rights reserved. Built with ❤️ for animals in distress.
+            </div>
+            <div className="flex items-center gap-4 text-xs font-semibold text-slate-300">
+              <span className="text-emerald-400 font-bold">● Network Active</span>
+              <span>GPS Dispatches Verified</span>
+              <span>Pan-India Coverage</span>
+            </div>
           </div>
         </div>
       </footer>

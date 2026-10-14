@@ -133,16 +133,37 @@ const rescueCaseSchema = new mongoose.Schema(
       address:   { type: String, required: [true, 'Location address is required'] },
     },
 
-    // ─── Priority ────────────────────────────────────────────────────────────
+    // ─── Priority & Triage ───────────────────────────────────────────────────
 
     /**
-     * Populated by the priority algorithm in Phase 5.
-     * Stored here so responders and admins can see the calculated score.
+     * Overall operational priority level.
      */
     priority: {
       type: String,
       enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
       default: 'MEDIUM'
+    },
+
+    /**
+     * Triage Urgency Scoring (TUS) audit details:
+     * TUS = W_animal + W_condition + W_location_risk
+     */
+    triage: {
+      score: { type: Number },
+      priority: { type: String, enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] },
+      breakdown: {
+        animalRisk: { type: Number },
+        conditionSeverity: { type: Number },
+        locationRisk: { type: Number },
+      },
+      scoringInputs: {
+        animalType: { type: String },
+        emergencyType: { type: String },
+        description: { type: String },
+        locationAddress: { type: String },
+      },
+      calculatedAt: { type: Date, default: Date.now },
+      disclaimer: { type: String },
     },
 
     // ─── Assignment ──────────────────────────────────────────────────────────
@@ -164,12 +185,13 @@ const rescueCaseSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: [
-          // ── Phase 4 statuses (primary workflow) ──
+          // ── Primary workflow statuses ──
           'PENDING',            // Citizen submitted, awaiting acceptance
           'ACCEPTED',           // Responder accepted the case
           'IN_PROGRESS',        // Responder is actively rescuing
           'RESCUED',            // Animal has been rescued
           'CANCELLED',          // Case cancelled
+          'ESCALATED',          // Escalated to administrators due to response SLA timeout
           // ── Future phase statuses (reserved) ──
           'reported',
           'prioritized',
@@ -201,6 +223,7 @@ const rescueCaseSchema = new mongoose.Schema(
       isEscalated: { type: Boolean, default: false },
       escalatedAt: { type: Date },
       escalationReason: { type: String },
+      searchRadiusKm: { type: Number, default: 15 },
     },
 
     // ─── Verification ────────────────────────────────────────────────────────
@@ -222,7 +245,7 @@ const rescueCaseSchema = new mongoose.Schema(
       },
     },
 
-    // ─── Duplicate Detection ─────────────────────────────────────────────────
+    // ─── Duplicate Detection & Corroborating Reports ─────────────────────────
 
     duplicateInfo: {
       isDuplicate: { type: Boolean, default: false },
@@ -232,11 +255,50 @@ const rescueCaseSchema = new mongoose.Schema(
       },
       duplicateDetectedAt: { type: Date },
     },
+
+    /**
+     * Corroborating reports attached by other citizens reporting the same incident
+     * (<100m, <45m window, same animal category).
+     */
+    corroboratingReports: [
+      {
+        reporterName: { type: String, required: true },
+        reporterContact: { type: String, required: true },
+        reporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        description: { type: String },
+        imageUrl: { type: String },
+        location: {
+          address: { type: String },
+          latitude: { type: Number },
+          longitude: { type: Number },
+        },
+        distanceMeters: { type: Number },
+        reportedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically
   }
 );
+
+// Indexes for query performance and geospatial lookup
+rescueCaseSchema.index({ 'location.latitude': 1, 'location.longitude': 1 });
+rescueCaseSchema.index({ status: 1, createdAt: -1 });
+rescueCaseSchema.index({ animalType: 1, createdAt: -1 });
+rescueCaseSchema.index({ 'escalation.isEscalated': 1, status: 1 });
+
+/**
+ * Static helper to find a case by either MongoDB _id or human-readable caseId without CastErrors.
+ */
+rescueCaseSchema.statics.findByIdOrCaseId = function (identifier) {
+  if (!identifier) return null;
+  const str = String(identifier).trim();
+  if (mongoose.Types.ObjectId.isValid(str) && /^[0-9a-fA-F]{24}$/.test(str)) {
+    return this.findOne({ $or: [{ _id: new mongoose.Types.ObjectId(str) }, { caseId: str }] });
+  }
+  return this.findOne({ caseId: str });
+};
 
 const RescueCase = mongoose.model('RescueCase', rescueCaseSchema);
 

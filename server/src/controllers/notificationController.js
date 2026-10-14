@@ -19,10 +19,12 @@ const getMyNotifications = async (req, res) => {
 
   const unreadCount = await Notification.countDocuments({ recipient: userId, read: false });
 
-  return sendSuccess(res, {
+  return res.status(200).json({
+    success: true,
+    message: 'Notifications fetched successfully',
     data: notifications,
     unreadCount,
-  }, 'Notifications fetched successfully');
+  });
 };
 
 // ─── PATCH /api/notifications/:id/read ───────────────────────────────────────

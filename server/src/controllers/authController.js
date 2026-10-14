@@ -67,12 +67,45 @@ const register = async (req, res) => {
     return sendError(res, 'Name, email, and password are required', 400);
   }
 
-  if (password.length < 8) {
-    return sendError(res, 'Password must be at least 8 characters', 400);
+  // --- Validate Name (Must contain letters only, no numbers allowed, min 2 chars) ---
+  const trimmedName = name.trim();
+  if (/\d/.test(trimmedName)) {
+    return sendError(res, 'Name must contain letters only (numbers are not allowed).', 400);
+  }
+  if (!/^[a-zA-Z\s.'-]+$/.test(trimmedName) || trimmedName.length < 2) {
+    return sendError(res, 'Name must contain letters only and be at least 2 characters long.', 400);
   }
 
-  // --- Normalize email ---
+  // --- Validate Phone (If provided, must be digits only and exactly 10 digits) ---
+  let cleanedPhone = undefined;
+  if (phone && phone.trim()) {
+    const rawPhone = phone.trim();
+    if (/[a-zA-Z]/.test(rawPhone)) {
+      return sendError(res, 'Phone number must contain numbers only (letters are not allowed).', 400);
+    }
+    const digitsOnly = rawPhone.replace(/\D/g, '');
+    let coreDigits = digitsOnly;
+    if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+      coreDigits = digitsOnly.slice(2);
+    } else if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
+      coreDigits = digitsOnly.slice(1);
+    }
+    if (coreDigits.length !== 10) {
+      return sendError(res, `Phone number must be exactly 10 digits (you entered ${coreDigits.length} digits).`, 400);
+    }
+    cleanedPhone = coreDigits;
+  }
+
+  // --- Normalize and Validate Email ---
   const normalizedEmail = email.toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return sendError(res, 'Please enter a valid email address (e.g. name@domain.com).', 400);
+  }
+
+  // --- Validate Password Length ---
+  if (password.length < 8) {
+    return sendError(res, 'Password must be at least 8 characters long.', 400);
+  }
 
   // --- Check for duplicate email ---
   const existing = await User.findOne({ email: normalizedEmail });
@@ -87,10 +120,10 @@ const register = async (req, res) => {
   // --- Create user ---
   // NOTE: role is hardcoded to 'citizen' — the request body role is ignored.
   const user = await User.create({
-    name:     name.trim(),
+    name:     trimmedName,
     email:    normalizedEmail,
     password: hashedPassword,
-    phone:    phone ? phone.trim() : undefined,
+    phone:    cleanedPhone,
     role:     'citizen',   // ← ALWAYS citizen, never from req.body
     isActive: true,
   });

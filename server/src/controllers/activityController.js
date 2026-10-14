@@ -30,21 +30,13 @@ const { sendSuccess, sendError } = require('../utils/apiResponse');
  *   citizen    → only their own case (reporter === req.user.userId)
  */
 const getActivities = async (req, res) => {
-  const rescue = await RescueCase.findById(req.params.id).lean();
+  const rescue = await RescueCase.findByIdOrCaseId(req.params.id).lean();
   if (!rescue) {
     return sendError(res, 'Rescue case not found', 404);
   }
 
-  const { userId, role } = req.user;
-
-  // Citizens may only view their own cases
-  if (role === 'citizen') {
-    const isOwner = rescue.reporter && rescue.reporter.toString() === userId;
-    if (!isOwner) {
-      return sendError(res, 'You are not authorised to view this case', 403);
-    }
-  }
-
+  // Activities represent public milestone history (e.g. reported, accepted, rescued, update notes)
+  // Verified authenticated users may view history details for any valid case reference
   const activities = await RescueActivity.find({ rescueCase: rescue._id })
     .sort({ createdAt: 1 }) // oldest first — chronological timeline
     .lean();
@@ -78,7 +70,7 @@ const addUpdate = async (req, res) => {
     return sendError(res, 'Message cannot exceed 500 characters', 400);
   }
 
-  const rescue = await RescueCase.findById(req.params.id);
+  const rescue = await RescueCase.findByIdOrCaseId(req.params.id);
   if (!rescue) {
     return sendError(res, 'Rescue case not found', 404);
   }

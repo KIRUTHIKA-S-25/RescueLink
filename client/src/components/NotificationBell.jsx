@@ -19,8 +19,21 @@ const NotificationBell = () => {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data.data);
-      setUnreadCount(res.data.unreadCount);
+      const raw = res.data?.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+          ? raw.data
+          : Array.isArray(raw?.notifications)
+            ? raw.notifications
+            : [];
+      setNotifications(list);
+      const count = typeof res.data?.unreadCount === 'number'
+        ? res.data.unreadCount
+        : typeof raw?.unreadCount === 'number'
+          ? raw.unreadCount
+          : list.filter((n) => !n.read).length;
+      setUnreadCount(count);
     } catch (err) {
       console.error('Failed to fetch notifications', err);
     }
@@ -55,7 +68,7 @@ const NotificationBell = () => {
         await api.patch(`/notifications/${notification._id}/read`);
         setUnreadCount((prev) => Math.max(0, prev - 1));
         setNotifications((prev) =>
-          prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
+          (Array.isArray(prev) ? prev : []).map((n) => (n._id === notification._id ? { ...n, read: true } : n))
         );
       } catch (err) {
         console.error('Failed to mark read', err);
@@ -68,6 +81,8 @@ const NotificationBell = () => {
   };
 
   if (!user) return null;
+
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -94,7 +109,7 @@ const NotificationBell = () => {
                   try {
                     await api.patch('/notifications/read-all');
                     setUnreadCount(0);
-                    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+                    setNotifications(safeNotifications.map((n) => ({ ...n, read: true })));
                   } catch (e) {
                     console.error('Failed to mark all as read');
                   }
@@ -107,13 +122,13 @@ const NotificationBell = () => {
           </div>
 
           <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {safeNotifications.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
                 You don't have any notifications yet.
               </div>
             ) : (
               <ul className="divide-y divide-gray-50">
-                {notifications.slice(0, 5).map((n) => (
+                {safeNotifications.slice(0, 5).map((n) => (
                   <li
                     key={n._id}
                     onClick={() => handleNotificationClick(n)}

@@ -13,10 +13,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useParallax } from '../utils/useParallax';
+import LocationPickerMap from '../components/LocationPickerMap';
 
 const ANIMAL_TYPES   = ['Dog', 'Cat', 'Bird', 'Cow', 'Horse', 'Other'];
 const EMERGENCY_TYPES = ['Injured', 'Trapped', 'Abandoned', 'Accident', 'Sick', 'Other'];
-const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 
 const INITIAL_FORM = {
   reporterName:    '',
@@ -26,13 +27,19 @@ const INITIAL_FORM = {
   locationAddress: '',
   latitude:        null,
   longitude:       null,
-  priority:        'MEDIUM',
   imageFile:       null,
 };
 
 const ReportRescue = () => {
   const { user } = useAuth();
   const navigate  = useNavigate();
+
+  const {
+    containerRef: bannerRef,
+    parallaxBgStyle: bannerBgStyle,
+    handleMouseMove: handleBannerMouseMove,
+    handleMouseLeave: handleBannerMouseLeave,
+  } = useParallax({ scrollSpeed: 0.2, mouseSensitivity: 12 });
 
   const [form, setForm]           = useState({
     ...INITIAL_FORM,
@@ -91,16 +98,89 @@ const ReportRescue = () => {
     );
   };
 
-  // ─── Validation ────────────────────────────────────────────────────────────
+  // ─── Field Validation ─────────────────────────────────────────────────────
+
+  const validateField = (name, value) => {
+    let err = '';
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+
+    switch (name) {
+      case 'reporterName':
+        if (!trimmed) {
+          err = 'Your name is required';
+        } else if (/\d/.test(trimmed)) {
+          err = 'Name must contain letters only (numbers are not allowed)';
+        } else if (!/^[a-zA-Z\s.'-]+$/.test(trimmed) || trimmed.length < 2) {
+          err = 'Name must contain letters only (minimum 2 characters)';
+        }
+        break;
+
+      case 'reporterContact':
+        if (!trimmed) {
+          err = 'Contact number is required';
+        } else if (/[a-zA-Z]/.test(trimmed)) {
+          err = 'Phone number must contain numbers only (letters are not allowed)';
+        } else {
+          const digits = trimmed.replace(/\D/g, '');
+          let core = digits;
+          if (digits.length === 12 && digits.startsWith('91')) core = digits.slice(2);
+          else if (digits.length === 11 && digits.startsWith('0')) core = digits.slice(1);
+          if (core.length !== 10) {
+            err = `Phone number must be exactly 10 digits (currently ${core.length} digits)`;
+          }
+        }
+        break;
+
+      case 'animalType':
+        if (!trimmed) err = 'Please select an animal type';
+        break;
+
+      case 'emergencyType':
+        if (!trimmed) err = 'Please select an emergency type';
+        break;
+
+      case 'description':
+        if (!trimmed) {
+          err = 'Please describe the emergency';
+        } else if (trimmed.length < 10) {
+          err = 'Please provide more details about the emergency (minimum 10 characters)';
+        }
+        break;
+
+      case 'locationAddress':
+        if (!trimmed) {
+          err = 'Location address is required';
+        } else if (trimmed.length < 5) {
+          err = 'Location address must be at least 5 characters long';
+        }
+        break;
+
+      default:
+        break;
+    }
+    return err;
+  };
 
   const validate = () => {
     const errs = {};
-    if (!form.reporterName.trim())    errs.reporterName    = 'Your name is required';
-    if (!form.reporterContact.trim()) errs.reporterContact = 'Contact number is required';
-    if (!form.animalType)             errs.animalType      = 'Please select an animal type';
-    if (!form.emergencyType)          errs.emergencyType   = 'Please select an emergency type';
-    if (!form.description.trim())     errs.description     = 'Please describe the emergency';
-    if (!form.locationAddress.trim()) errs.locationAddress = 'Location is required';
+    const nameErr = validateField('reporterName', form.reporterName);
+    if (nameErr) errs.reporterName = nameErr;
+
+    const contactErr = validateField('reporterContact', form.reporterContact);
+    if (contactErr) errs.reporterContact = contactErr;
+
+    const animalErr = validateField('animalType', form.animalType);
+    if (animalErr) errs.animalType = animalErr;
+
+    const emergencyErr = validateField('emergencyType', form.emergencyType);
+    if (emergencyErr) errs.emergencyType = emergencyErr;
+
+    const descErr = validateField('description', form.description);
+    if (descErr) errs.description = descErr;
+
+    const locErr = validateField('locationAddress', form.locationAddress);
+    if (locErr) errs.locationAddress = locErr;
+
     return errs;
   };
 
@@ -125,7 +205,6 @@ const ReportRescue = () => {
       formData.append('locationAddress', form.locationAddress.trim());
       if (form.latitude) formData.append('latitude', form.latitude);
       if (form.longitude) formData.append('longitude', form.longitude);
-      formData.append('priority', form.priority);
       if (form.imageFile) formData.append('image', form.imageFile);
 
       const res = await api.post('/rescues', formData, {
@@ -143,25 +222,31 @@ const ReportRescue = () => {
   // ─── Success screen ────────────────────────────────────────────────────────
 
   if (submitted) {
+    const isCorroborating = submitted.isDuplicate;
+
     return (
       <div className="min-h-screen mesh-bg flex items-center justify-center p-4">
         <div className="w-full max-w-lg animate-slide-in-up">
           <div className="bg-white rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(226,232,240,0.7)', boxShadow: '0 16px 48px rgba(15,23,42,0.12)' }}>
             {/* Success header */}
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 text-center text-white">
+            <div className={`p-8 text-center text-white ${isCorroborating ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'}`}>
               <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-5xl mx-auto mb-4 animate-float">
-                ✅
+                {isCorroborating ? '🤝' : '✅'}
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Rescue Request Submitted!</h1>
-              <p className="text-emerald-100 text-sm mt-2">
-                Your emergency has been reported. A rescue team will respond shortly.
+              <h1 className="text-2xl font-extrabold tracking-tight">
+                {isCorroborating ? 'Corroborating Report Linked!' : 'Rescue Request Submitted!'}
+              </h1>
+              <p className="text-white/90 text-sm mt-2">
+                {isCorroborating
+                  ? 'A matching rescue incident is already active nearby. Your report and photo were attached as corroborating evidence!'
+                  : 'Your emergency has been reported. Automated triage is evaluating priority and alerting responders.'}
               </p>
             </div>
 
             <div className="p-6">
               <div className="rounded-2xl p-5 space-y-3 mb-5" style={{ background: 'rgba(248,250,252,0.8)', border: '1px solid rgba(226,232,240,0.7)' }}>
                 {[
-                  { label: 'Case ID', value: submitted.caseId, mono: true, highlight: true },
+                  { label: 'Case Reference', value: submitted.caseId, mono: true, highlight: true },
                   { label: 'Animal', value: submitted.animalType },
                   { label: 'Emergency', value: submitted.emergencyType },
                   { label: 'Status', value: submitted.status, badge: true },
@@ -177,15 +262,19 @@ const ReportRescue = () => {
                 ))}
               </div>
 
-              <div className="flex gap-3">
-                {user && (
+              <div className="flex flex-col sm:flex-row gap-3">
+                {user ? (
                   <Link to="/my-rescues" className="btn-primary flex-1 text-center py-3">
                     📋 Track My Rescues
+                  </Link>
+                ) : (
+                  <Link to="/" className="btn-secondary flex-1 text-center py-3">
+                    🏠 Return to Home
                   </Link>
                 )}
                 <button
                   onClick={() => { setSubmitted(null); setForm({ ...INITIAL_FORM, reporterName: user?.name || '', reporterContact: user?.phone || '' }); }}
-                  className="btn-secondary flex-1 py-3"
+                  className="btn-emergency flex-1 py-3 text-center justify-center cursor-pointer"
                 >
                   Report Another
                 </button>
@@ -221,15 +310,42 @@ const ReportRescue = () => {
 
       <main className="max-w-3xl mx-auto px-4 py-8">
 
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Report an Animal Emergency</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Fill in the details below. Our rescue team will be notified immediately.
-          </p>
+        {/* Parallax Animal Emergency Header Banner */}
+        <div
+          ref={bannerRef}
+          onMouseMove={handleBannerMouseMove}
+          onMouseLeave={handleBannerMouseLeave}
+          className="relative rounded-3xl overflow-hidden mb-8 text-white shadow-2xl"
+          style={{ minHeight: '180px' }}
+        >
+          {/* Parallax Animal Background Layer */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <img
+              src="/images/rescuer-banner.jpg"
+              alt="Animal Emergency Rescue"
+              className="parallax-bg-layer object-cover filter brightness-95 saturate-110"
+              style={bannerBgStyle}
+            />
+            {/* Scrim Overlay */}
+            <div className="absolute inset-0 header-scrim-dark" />
+          </div>
+
+          <div className="relative z-10 p-6 sm:p-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500/25 border border-rose-500/40 text-rose-300 mb-3 backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+              <span>🚨 Live Emergency Dispatch</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+              Report an Animal Emergency
+            </h1>
+            <p className="text-slate-300 text-xs sm:text-sm mt-1.5 max-w-xl drop-shadow">
+              Fill in the details below. Our automated system calculates priority and alerts the nearest active rescue responder immediately.
+            </p>
+          </div>
         </div>
 
-        <div className="card">
+        <div className="glass-form-card-light rounded-3xl p-6 sm:p-8 shadow-xl border border-white/60 relative overflow-hidden mb-12">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600" />
           <form id="report-rescue-form" onSubmit={handleSubmit} noValidate className="space-y-5">
 
             {/* Form-level error */}
@@ -361,14 +477,21 @@ const ReportRescue = () => {
                 </div>
                 
                 {geoStatus && (
-                  <p className={`text-xs mb-2 ${geoStatus === 'Location detected' ? 'text-green-600' : 'text-orange-600'}`}>
+                  <p className={`text-xs mb-2 ${geoStatus.includes('detected') || geoStatus.includes('pinned') ? 'text-green-600' : 'text-orange-600'}`}>
                     {geoStatus}
                   </p>
                 )}
 
                 {form.latitude && form.longitude && (
-                  <div className="bg-gray-50 border border-gray-100 rounded p-2 mb-3 text-xs text-gray-600 font-mono">
-                    Latitude: {form.latitude.toFixed(6)} | Longitude: {form.longitude.toFixed(6)}
+                  <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5 mb-3 text-xs text-gray-600 font-mono flex items-center justify-between">
+                    <span>📍 Pin: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, latitude: null, longitude: null }))}
+                      className="text-red-500 hover:text-red-700 text-xs font-sans font-semibold cursor-pointer"
+                    >
+                      Clear Pin
+                    </button>
                   </div>
                 )}
 
@@ -379,26 +502,36 @@ const ReportRescue = () => {
                   value={form.locationAddress}
                   onChange={handleChange}
                   placeholder="Street address, landmark, or area name"
-                  className={`form-input ${errors.locationAddress ? 'border-red-400' : ''}`}
+                  className={`form-input mb-3 ${errors.locationAddress ? 'border-red-400' : ''}`}
                   disabled={loading}
                 />
-                {errors.locationAddress && <p className="text-red-500 text-xs mt-1">{errors.locationAddress}</p>}
+                {errors.locationAddress && <p className="text-red-500 text-xs mb-3">{errors.locationAddress}</p>}
+
+                {/* Interactive Leaflet Map Fallback */}
+                <div className="mb-4">
+                  <label className="text-xs font-medium text-slate-600 mb-1.5 block">
+                    🗺️ Pinpoint Incident Location on Map (Click on map to drop or adjust pin):
+                  </label>
+                  <LocationPickerMap
+                    latitude={form.latitude}
+                    longitude={form.longitude}
+                    onLocationSelect={(lat, lng) => {
+                      setForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                      setGeoStatus('Location pinned on map');
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="mb-4">
-                <label htmlFor="priority" className="form-label">
-                  Severity / Priority <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="priority"
-                  name="priority"
-                  value={form.priority}
-                  onChange={handleChange}
-                  className="form-input"
-                  disabled={loading}
-                >
-                  {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
+              {/* Automated Triage Urgency Notice (Backend Algorithmic Scoring) */}
+              <div className="mb-4 p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-900 flex items-start gap-3">
+                <span className="text-xl">🧠</span>
+                <div>
+                  <h4 className="font-bold text-indigo-950 mb-0.5">Automated Emergency Triage (TUS Engine)</h4>
+                  <p className="text-indigo-800/80 leading-relaxed">
+                    Severity is computed objectively on submission based on animal vulnerability, trauma type, and environmental hazards. Client overrides are disabled to ensure priority life-saving dispatch.
+                  </p>
+                </div>
               </div>
 
             </fieldset>

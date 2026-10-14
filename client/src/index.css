@@ -433,3 +433,62 @@ a, button { transition: all 0.2s ease; }
 .font-mono-case {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
+
+/* ─── Parallax & Animal Imagery Utilities ────────────────────────────────── */
+.parallax-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.parallax-bg-layer {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes kenburnsSlow {
+  0%   { transform: scale(1.04) translate(0, 0); }
+  50%  { transform: scale(1.09) translate(-1%, -1%); }
+  100% { transform: scale(1.04) translate(0, 0); }
+}
+
+.animate-kenburns {
+  animation: kenburnsSlow 25s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.glass-form-card {
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.glass-form-card-light {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+.header-scrim-dark {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.5) 40%, rgba(15, 23, 42, 0.92) 100%),
+              radial-gradient(circle at 50% 30%, transparent 20%, rgba(15, 23, 42, 0.6) 80%);
+}
+
+.header-scrim-hero {
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.82) 0%, rgba(248, 250, 252, 0.65) 50%, rgba(241, 245, 249, 0.9) 100%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(248, 250, 252, 0.75) 100%);
+}
+
+.form-scrim-cinematic {
+  background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.82) 100%),
+              linear-gradient(135deg, rgba(225, 29, 72, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%);
+}

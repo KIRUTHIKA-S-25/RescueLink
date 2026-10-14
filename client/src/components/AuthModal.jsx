@@ -26,6 +26,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
     password: '',
     confirmPassword: '',
   });
+  const [regErrors, setRegErrors] = useState({});
 
   useEffect(() => {
     setMode(initialMode);
@@ -47,11 +48,6 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
 
   const handleLoginChange = (e) => {
     setLoginForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (error) setError('');
-  };
-
-  const handleRegisterChange = (e) => {
-    setRegisterForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
   };
 
@@ -101,31 +97,107 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
     }
   };
 
+  const validateRegField = (name, value, allValues = registerForm) => {
+    let err = '';
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+
+    switch (name) {
+      case 'name':
+        if (!trimmed) {
+          err = 'Full name is required.';
+        } else if (/\d/.test(trimmed)) {
+          err = 'Name must contain letters only (numbers are not allowed).';
+        } else if (!/^[a-zA-Z\s.'-]+$/.test(trimmed) || trimmed.length < 2) {
+          err = 'Name must contain letters only (minimum 2 characters).';
+        }
+        break;
+
+      case 'email':
+        if (!trimmed) {
+          err = 'Email address is required.';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+          err = 'Please enter a valid email address.';
+        }
+        break;
+
+      case 'phone':
+        if (trimmed) {
+          if (/[a-zA-Z]/.test(trimmed)) {
+            err = 'Phone number must contain numbers only.';
+          } else {
+            const digits = trimmed.replace(/\D/g, '');
+            let core = digits;
+            if (digits.length === 12 && digits.startsWith('91')) core = digits.slice(2);
+            else if (digits.length === 11 && digits.startsWith('0')) core = digits.slice(1);
+            if (core.length !== 10) {
+              err = `Phone number must be exactly 10 digits (entered ${core.length}).`;
+            }
+          }
+        }
+        break;
+
+      case 'password':
+        if (!value) {
+          err = 'Password is required.';
+        } else if (value.length < 8) {
+          err = 'Password must be at least 8 characters long.';
+        }
+        break;
+
+      case 'confirmPassword':
+        if (!value) {
+          err = 'Please repeat password.';
+        } else if (value !== allValues.password) {
+          err = 'Passwords do not match.';
+        }
+        break;
+
+      default:
+        break;
+    }
+    return err;
+  };
+
+  const handleRegisterChange = (e) => {
+    const { name, value } = e.target;
+    const updated = { ...registerForm, [name]: value };
+    setRegisterForm(updated);
+    if (error) setError('');
+
+    const err = validateRegField(name, value, updated);
+    setRegErrors((prev) => ({ ...prev, [name]: err }));
+
+    if (name === 'password' && registerForm.confirmPassword) {
+      const confirmErr = validateRegField('confirmPassword', registerForm.confirmPassword, updated);
+      setRegErrors((prev) => ({ ...prev, confirmPassword: confirmErr }));
+    }
+  };
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!registerForm.name.trim() || !registerForm.email.trim() || !registerForm.password) {
-      setError('Please fill all required fields.');
+
+    const errors = {
+      name: validateRegField('name', registerForm.name, registerForm),
+      email: validateRegField('email', registerForm.email, registerForm),
+      phone: validateRegField('phone', registerForm.phone, registerForm),
+      password: validateRegField('password', registerForm.password, registerForm),
+      confirmPassword: validateRegField('confirmPassword', registerForm.confirmPassword, registerForm),
+    };
+
+    setRegErrors(errors);
+    const firstErr = Object.values(errors).find(Boolean);
+    if (firstErr) {
+      setError(firstErr);
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    if (registerForm.password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
+
     setLoading(true);
     try {
       await register({
         name: registerForm.name.trim(),
         email: registerForm.email.trim(),
-        phone: registerForm.phone.trim(),
+        phone: registerForm.phone.trim() ? registerForm.phone.replace(/\D/g, '').slice(-10) : undefined,
         password: registerForm.password,
       });
       setSuccessMessage('Account created! Logging you in…');
@@ -153,16 +225,26 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
         style={{ background: 'white', boxShadow: '0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Modal Header ── */}
+        {/* ── Modal Header with Animal Backdrop ── */}
         <div className="relative overflow-hidden px-7 pt-7 pb-7"
           style={{
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
+            background: '#0f172a',
           }}>
+          {/* Animal Image Background */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <img
+              src="/images/form-bg-animals.jpg"
+              alt="Rescue Animals"
+              className="w-full h-full object-cover opacity-40 filter brightness-90 saturate-110"
+            />
+            <div className="absolute inset-0 header-scrim-dark" />
+          </div>
+
           {/* Decorative orbs */}
           <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(225,29,72,0.25) 0%, transparent 70%)' }} />
+            style={{ background: 'radial-gradient(circle, rgba(225,29,72,0.3) 0%, transparent 70%)' }} />
           <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)' }} />
+            style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%)' }} />
 
           {/* Subtle grid */}
           <div className="absolute inset-0 opacity-[0.03]"
@@ -344,7 +426,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
           {mode === 'register' && (
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div>
-                <label className="form-label" htmlFor="reg-name">Full Name</label>
+                <label className="form-label" htmlFor="reg-name">Full Name <span className="text-rose-500">*</span></label>
                 <input
                   id="reg-name"
                   name="name"
@@ -353,14 +435,21 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
                   placeholder="e.g. Priya Sharma"
                   value={registerForm.name}
                   onChange={handleRegisterChange}
-                  className="form-input"
+                  className={`form-input ${regErrors.name ? 'border-rose-400 bg-rose-50/10' : ''}`}
                   disabled={loading}
                 />
+                {regErrors.name ? (
+                  <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                    <span>⚠️</span> {regErrors.name}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-slate-400 mt-0.5">Letters and spaces only (minimum 2 characters).</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label" htmlFor="reg-email">Email</label>
+                  <label className="form-label" htmlFor="reg-email">Email <span className="text-rose-500">*</span></label>
                   <input
                     id="reg-email"
                     name="email"
@@ -369,9 +458,14 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
                     placeholder="name@email.com"
                     value={registerForm.email}
                     onChange={handleRegisterChange}
-                    className="form-input"
+                    className={`form-input ${regErrors.email ? 'border-rose-400 bg-rose-50/10' : ''}`}
                     disabled={loading}
                   />
+                  {regErrors.email && (
+                    <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                      <span>⚠️</span> {regErrors.email}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="form-label" htmlFor="reg-phone">Phone</label>
@@ -379,19 +473,26 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
                     id="reg-phone"
                     name="phone"
                     type="tel"
-                    placeholder="+91 98765 43210"
+                    placeholder="10 digits, e.g. 9876543210"
                     value={registerForm.phone}
                     onChange={handleRegisterChange}
-                    className="form-input"
+                    className={`form-input ${regErrors.phone ? 'border-rose-400 bg-rose-50/10' : ''}`}
                     disabled={loading}
                   />
+                  {regErrors.phone ? (
+                    <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                      <span>⚠️</span> {regErrors.phone}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 mt-0.5">Digits only (10 digits).</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="form-label mb-0" htmlFor="reg-password">Password</label>
+                    <label className="form-label mb-0" htmlFor="reg-password">Password <span className="text-rose-500">*</span></label>
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
                       className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors">
                       {showPassword ? 'Hide' : 'Show'}
@@ -405,12 +506,17 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
                     placeholder="Min 8 chars"
                     value={registerForm.password}
                     onChange={handleRegisterChange}
-                    className="form-input"
+                    className={`form-input ${regErrors.password ? 'border-rose-400 bg-rose-50/10' : ''}`}
                     disabled={loading}
                   />
+                  {regErrors.password && (
+                    <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                      <span>⚠️</span> {regErrors.password}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="form-label" htmlFor="reg-confirm">Confirm</label>
+                  <label className="form-label" htmlFor="reg-confirm">Confirm <span className="text-rose-500">*</span></label>
                   <input
                     id="reg-confirm"
                     name="confirmPassword"
@@ -419,9 +525,14 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login', onAuthSuccess }) =>
                     placeholder="Repeat password"
                     value={registerForm.confirmPassword}
                     onChange={handleRegisterChange}
-                    className="form-input"
+                    className={`form-input ${regErrors.confirmPassword ? 'border-rose-400 bg-rose-50/10' : ''}`}
                     disabled={loading}
                   />
+                  {regErrors.confirmPassword && (
+                    <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                      <span>⚠️</span> {regErrors.confirmPassword}
+                    </p>
+                  )}
                 </div>
               </div>
 

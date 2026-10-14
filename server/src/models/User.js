@@ -22,6 +22,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Name is required'],
       trim: true,
+      minlength: [2, 'Name must be at least 2 characters long'],
+      maxlength: [50, 'Name cannot exceed 50 characters'],
+      validate: {
+        validator: function (v) {
+          return !/\d/.test(v) && /^[a-zA-Z\s.'-]+$/.test(v);
+        },
+        message: 'Name must contain letters only (numbers are not allowed).',
+      },
     },
 
     email: {
@@ -30,6 +38,12 @@ const userSchema = new mongoose.Schema(
       unique: true,        // Enforced at the database level (creates an index)
       lowercase: true,     // Always store emails in lowercase for consistency
       trim: true,
+      validate: {
+        validator: function (v) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        },
+        message: 'Please provide a valid email address.',
+      },
     },
 
     /**
@@ -39,11 +53,23 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Password is required'],
+      minlength: [8, 'Password must be at least 8 characters long'],
     },
 
     phone: {
       type: String,
-      // Optional — not required
+      trim: true,
+      validate: {
+        validator: function (v) {
+          if (!v) return true; // Optional field
+          const digits = v.replace(/\D/g, '');
+          let core = digits;
+          if (digits.length === 12 && digits.startsWith('91')) core = digits.slice(2);
+          else if (digits.length === 11 && digits.startsWith('0')) core = digits.slice(1);
+          return core.length === 10;
+        },
+        message: 'Phone number must be exactly 10 digits.',
+      },
     },
 
     role: {

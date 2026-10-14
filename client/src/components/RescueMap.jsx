@@ -36,11 +36,18 @@ const ChangeView = ({ center, zoom }) => {
 };
 
 const RescueMap = ({ latitude, longitude, label = 'Reported Location', className = 'h-64 w-full rounded-lg z-0' }) => {
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-    return null;
+  const lat = typeof latitude === 'number' ? latitude : parseFloat(latitude);
+  const lng = typeof longitude === 'number' ? longitude : parseFloat(longitude);
+
+  if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return (
+      <div className={`flex items-center justify-center bg-slate-100 text-slate-400 text-xs italic ${className}`}>
+        Coordinates unavailable
+      </div>
+    );
   }
 
-  const position = [latitude, longitude];
+  const position = [lat, lng];
 
   return (
     <div className={`relative ${className}`} style={{ isolation: 'isolate' }}>

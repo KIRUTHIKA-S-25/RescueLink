@@ -64,6 +64,20 @@ const start = async () => {
     process.exit(1);
   });
 
+  // Graceful shutdown handling
+  const shutdown = () => {
+    console.log('\n[SERVER] Gracefully shutting down...');
+    const { stopEscalationWorker } = require('./src/services/escalationService');
+    stopEscalationWorker();
+    server.close(() => {
+      console.log('[SERVER] HTTP server closed.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+
   // Export for potential use in testing
   module.exports = server;
 };

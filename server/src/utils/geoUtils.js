@@ -2,8 +2,14 @@
  * geoUtils.js
  *
  * Geospatial utility functions for RescueLink.
- * - Haversine distance formula (kilometers and meters)
- * - Proximity-based responder matching with workload filtering
+ * - Haversine great-circle spherical distance formula (straight-line distance)
+ * - Proximity-based responder matching with workload filtering and capacity caps
+ *
+ * NOTE ON DISTANCE MEASUREMENT:
+ * Haversine calculates straight-line spherical Euclidean distance over the Earth's surface (R = 6371 km).
+ * Actual road transit distance and travel time will vary depending on urban routing, road layout,
+ * traffic, and natural obstacles. For field navigation, responders use deep-linked turn-by-turn
+ * navigation (e.g. Google Maps / OpenStreetMap) provided on their terminal.
  */
 
 const ResponderProfile = require('../models/ResponderProfile');
@@ -21,7 +27,8 @@ const ResponderProfile = require('../models/ResponderProfile');
 const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
   if (
     typeof lat1 !== 'number' || typeof lon1 !== 'number' ||
-    typeof lat2 !== 'number' || typeof lon2 !== 'number'
+    typeof lat2 !== 'number' || typeof lon2 !== 'number' ||
+    isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)
   ) {
     return Infinity;
   }
@@ -50,16 +57,19 @@ const calculateDistanceMeters = (lat1, lon1, lat2, lon2) => {
 
 /**
  * Finds all eligible responders within a given radius, sorted by distance.
- * Checks availability and maximum active workload.
+ * Checks availability, authorization, account status, and maximum active workload.
  *
- * @param {number} latitude
- * @param {number} longitude
+ * @param {number} latitude Incident latitude
+ * @param {number} longitude Incident longitude
  * @param {number} maxDistanceKm Maximum radius (default 15 km)
  * @param {number} maxWorkload Maximum active cases allowed (default 3)
- * @returns {Promise<Array>} List of eligible responders with calculated distance
+ * @returns {Promise<Array>} List of eligible responders with calculated straight-line distance
  */
 const findEligibleResponders = async (latitude, longitude, maxDistanceKm = 15, maxWorkload = 3) => {
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+  if (
+    typeof latitude !== 'number' || typeof longitude !== 'number' ||
+    isNaN(latitude) || isNaN(longitude)
+  ) {
     return [];
   }
 
@@ -69,12 +79,14 @@ const findEligibleResponders = async (latitude, longitude, maxDistanceKm = 15, m
     activeCaseCount: { $lt: maxWorkload },
     latitude: { $exists: true, $ne: null },
     longitude: { $exists: true, $ne: null },
-  }).populate('user', 'name email phone isActive');
+  }).populate('user', 'name email phone role isActive');
 
   const eligible = [];
 
   for (const prof of profiles) {
+    // Only active responders with role 'responder' or 'admin'
     if (!prof.user || !prof.user.isActive) continue;
+    if (prof.user.role !== 'responder' && prof.user.role !== 'admin') continue;
 
     const distanceKm = calculateHaversineDistance(
       latitude,

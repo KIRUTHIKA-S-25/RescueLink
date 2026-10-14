@@ -23,8 +23,10 @@ const {
   getAllRescues,
   getRescueById,
   updateRescueStatus,
+  unmergeCorroboratingReport,
   getUserRescues,
   submitFeedback,
+  getRescuerStats,
 } = require('../controllers/rescueController');
 
 const { getActivities, addUpdate } = require('../controllers/activityController');
@@ -46,6 +48,9 @@ router.post('/', upload.single('image'), (req, res, next) => {
 
 // GET /api/rescues/my — authenticated user's own cases (must be BEFORE /:id)
 router.get('/my', protect, getUserRescues);
+
+// GET /api/rescues/my-stats — rescuer's personal workload & analytics (Phase 15)
+router.get('/my-stats', protect, authorizeRoles('responder', 'admin'), getRescuerStats);
 
 // GET /api/rescues — all cases for responder/admin dashboard
 router.get('/', protect, authorizeRoles('responder', 'admin'), getAllRescues);
@@ -70,5 +75,8 @@ router.post('/:id/updates', protect, authorizeRoles('responder', 'admin'), addUp
 
 // POST /api/rescues/:id/feedback — citizen only
 router.post('/:id/feedback', protect, authorizeRoles('citizen'), submitFeedback);
+
+// POST /api/rescues/:id/corroborating-reports/:reportId/unmerge — admin only
+router.post('/:id/corroborating-reports/:reportId/unmerge', protect, authorizeRoles('admin'), unmergeCorroboratingReport);
 
 module.exports = router;

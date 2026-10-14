@@ -87,6 +87,26 @@ const StatusTimeline = ({ status }) => {
   );
 };
 
+const VALID_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+
+const getPriorityLabel = (p) => {
+  if (!p) return 'MEDIUM';
+  if (typeof p === 'string') {
+    const up = p.toUpperCase();
+    return VALID_PRIORITIES.includes(up) ? up : 'MEDIUM';
+  }
+  if (typeof p === 'object') {
+    const extracted = p.level || p.priority || p.value || p.name;
+    if (typeof extracted === 'string') {
+      const up = extracted.toUpperCase();
+      return VALID_PRIORITIES.includes(up) ? up : 'MEDIUM';
+    }
+    return 'MEDIUM';
+  }
+  const s = String(p).toUpperCase();
+  return VALID_PRIORITIES.includes(s) ? s : 'MEDIUM';
+};
+
 const MyRescues = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -198,7 +218,8 @@ const MyRescues = () => {
           <div className="space-y-4">
             {rescues.map((r, i) => {
               const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.PENDING;
-              const pc = PRIORITY_CONFIG[r.priority] || PRIORITY_CONFIG.MEDIUM;
+              const pLabel = getPriorityLabel(r.priority);
+              const pc = PRIORITY_CONFIG[pLabel] || PRIORITY_CONFIG.MEDIUM;
               return (
                 <div
                   key={r._id}
@@ -227,7 +248,7 @@ const MyRescues = () => {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-lg border ${pc.pill}`}>
-                          {r.priority}
+                          {pLabel}
                         </span>
                         <StatusBadge status={r.status} />
                       </div>

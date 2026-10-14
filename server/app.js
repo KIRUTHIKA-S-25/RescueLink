@@ -26,6 +26,7 @@ const authRoutes   = require('./src/routes/authRoutes');
 const rescueRoutes = require('./src/routes/rescueRoutes');  // Phase 4
 const notificationRoutes = require('./src/routes/notificationRoutes'); // Phase 7
 const adminRoutes  = require('./src/routes/adminRoutes'); // Phase 9
+const chatRoutes   = require('./src/routes/chatRoutes');  // Phase 13
 const testRoutes   = require('./src/routes/testRoutes');    // DEV ONLY
 
 const app = express();
@@ -40,7 +41,13 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
  */
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. curl, postman) or any localhost port in development
+      if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || origin === process.env.CLIENT_URL) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true, // Allow cookies/auth headers
   })
 );
@@ -82,13 +89,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+const { rateLimiter } = require('./src/middleware/rateLimitMiddleware');
+
+// Generous dev-friendly rate limiting for brute-force protection
+const authLimiter = rateLimiter({ windowMs: 60 * 1000, maxRequests: 60, message: 'Too many auth requests, please slow down.' });
+const reportLimiter = rateLimiter({ windowMs: 60 * 1000, maxRequests: 40, message: 'Too many incident submissions, please try again in a minute.' });
+const chatLimiter = rateLimiter({ windowMs: 60 * 1000, maxRequests: 60, message: 'Too many chat requests, please slow down.' });
+
 /**
  * Auth routes — Phase 3
  * POST /api/auth/register
  * POST /api/auth/login
  * GET  /api/auth/me
  */
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 
 /**
  * Rescue routes — Phase 4
@@ -98,7 +112,7 @@ app.use('/api/auth', authRoutes);
  * GET    /api/rescues/:id
  * PATCH  /api/rescues/:id/status
  */
-app.use('/api/rescues', rescueRoutes);
+app.use('/api/rescues', reportLimiter, rescueRoutes);
 
 /**
  * Notification routes — Phase 7
@@ -114,6 +128,12 @@ app.use('/api/notifications', notificationRoutes);
  * GET /api/admin/audit
  */
 app.use('/api/admin', adminRoutes);
+
+/**
+ * Chatbot routes — Phase 13
+ * POST /api/chat
+ */
+app.use('/api/chat', chatLimiter, chatRoutes);
 
 /**
  * Test routes — Phase 3 development verification ONLY
